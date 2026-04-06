@@ -4,7 +4,7 @@
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "env": {
-    "NEXTAUTH_URL": "https://your-domain.vercel.app"
+    "NEXTAUTH_URL": "https://getdriver.vercel.app"
   },
   "functions": {
     "app/api/**": {
