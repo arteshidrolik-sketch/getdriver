@@ -34,10 +34,10 @@ export const authOptions: NextAuthOptions = {
             include: { driver: true },
           });
         }
-        if (!user || !user.passwordHash) {
+        if (!user || !user.password) {
           throw new Error("Kullanıcı bulunamadı");
         }
-        const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+        const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) {
           throw new Error("Hatalı şifre");
         }
