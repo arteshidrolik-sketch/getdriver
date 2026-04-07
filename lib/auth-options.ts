@@ -1,12 +1,10 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
-  // adapter: PrismaAdapter(prisma), // Disabled - using JWT strategy
   trustHost: true,
   providers: [
     GoogleProvider({
@@ -52,18 +50,46 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        try {
+          // Google ile giriş yapan kullanıcıyı veritabanında bul veya oluştur
+          let dbUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          });
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: user.email!,
+                name: user.name || "",
+                profilePhoto: user.image || null,
+                role: "CUSTOMER",
+              } as any,
+            });
+          }
+          user.id = dbUser.id;
+          return true;
+        } catch (error) {
+          console.error("Google signIn error:", error);
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          include: { driver: true },
-        });
-        if (dbUser) {
-          token.role = dbUser.role;
-          token.phone = dbUser.phone;
-          token.driverStatus = (dbUser as any).driver?.approvalStatus || null;
-        }
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            include: { driver: true },
+          });
+          if (dbUser) {
+            token.role = (dbUser as any).role;
+            token.phone = (dbUser as any).phone;
+            token.driverStatus = (dbUser as any).driver?.approvalStatus || null;
+          }
+        } catch {}
       }
       return token;
     },
