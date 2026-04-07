@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // adapter: PrismaAdapter(prisma), // Disabled - using JWT strategy
   trustHost: true,
   providers: [
     GoogleProvider({
