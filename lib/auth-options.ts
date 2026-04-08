@@ -1,17 +1,11 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
   trustHost: true,
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      allowDangerousEmailAccountLinking: false,
-    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -50,30 +44,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
-        try {
-          // Google ile giriş yapan kullanıcıyı veritabanında bul veya oluştur
-          let dbUser = await prisma.user.findUnique({
-            where: { email: user.email! },
-          });
-          if (!dbUser) {
-            dbUser = await prisma.user.create({
-              data: {
-                email: user.email!,
-                name: user.name || "",
-                profilePhoto: user.image || null,
-                role: "CUSTOMER",
-              } as any,
-            });
-          }
-          user.id = dbUser.id;
-          return true;
-        } catch (error) {
-          console.error("Google signIn error:", error);
-          return false;
-        }
-      }
+    async signIn({ user, account }) {
       return true;
     },
     async jwt({ token, user, account }) {
