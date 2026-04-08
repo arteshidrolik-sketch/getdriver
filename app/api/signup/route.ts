@@ -93,10 +93,10 @@ export async function POST(request: Request) {
       message: "Kayıt başarılı",
       userId: user.id,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Signup error:", error);
     return NextResponse.json(
-      { error: "Kayıt sırasında bir hata oluştu" },
+      { error: "Kayıt hatası: " + (error?.message || "Bilinmeyen hata") },
       { status: 500 }
     );
   }
