@@ -108,10 +108,10 @@ export default function RegisterPage() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Hata",
-        description: "Bir hata oluştu",
+        description: error?.message || "Bir hata oluştu",
         variant: "destructive",
       });
     } finally {
