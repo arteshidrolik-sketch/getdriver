@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+
 import { Shield, Phone, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -143,7 +142,7 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700"
-              disabled={loading || googleLoading}
+              disabled={loading}
             >
               {loading ? (
                 <>
@@ -156,39 +155,7 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">veya</span>
-            </div>
-          </div>
 
-          {/* Google Sign In Button */}
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={loading || googleLoading}
-            onClick={() => {
-              setGoogleLoading(true);
-              signIn("google", { redirect: true, callbackUrl: "/musteri" });
-            }}
-          >
-            {googleLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Yönlendiriliyor...
-              </>
-            ) : (
-              <>
-                <GoogleIcon />
-                <span className="ml-2">Google ile Giriş Yap</span>
-              </>
-            )}
-          </Button>
 
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
