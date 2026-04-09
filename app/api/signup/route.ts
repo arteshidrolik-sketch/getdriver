@@ -3,21 +3,10 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { checkRateLimit, getClientIP, rateLimitExceededResponse, RATE_LIMIT_CONFIGS } from "@/lib/rate-limit";
+
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting kontrolü
-    const clientIP = getClientIP(request);
-    const rateLimit = checkRateLimit(clientIP, "signup", RATE_LIMIT_CONFIGS.signup);
-    
-    if (!rateLimit.success) {
-      return NextResponse.json(
-        rateLimitExceededResponse(rateLimit.resetIn),
-        { status: 429 }
-      );
-    }
-
     const body = await request.json();
     const { phone, name, password, role = "CUSTOMER" } = body;
 
