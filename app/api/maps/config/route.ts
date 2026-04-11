@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+
 
 /**
  * Google Maps JS API anahtarını sadece oturum açmış kullanıcılara döner.
@@ -10,11 +9,7 @@ import { authOptions } from "@/lib/auth-options";
  * tarayıcı bundle'ına gömülmez.
  */
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
-  }
-
+  // Harita API key'ini herkese açık yap (sadece key'i döndür, hassas veri yok)
   const apiKey = process.env.GOOGLE_MAPS_API_KEY || "";
   if (!apiKey) {
     return NextResponse.json({ error: "Maps API key yapılandırılmamış" }, { status: 500 });
