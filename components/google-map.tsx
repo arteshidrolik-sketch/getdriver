@@ -98,25 +98,32 @@ export function GoogleMap({
     // Anahtarı sunucu taraflı endpoint'ten al, sonra script'i yükle
     getGoogleMapsApiKey().then((apiKey) => {
       if (!apiKey) {
-        setError("Google Maps yapılandırılmamış");
+        setError("Google Maps API key bulunamadı");
         return;
       }
 
+      console.log("Loading Google Maps with key...");
+      
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
       script.async = true;
       script.defer = true;
 
       window.initGoogleMaps = () => {
+        console.log("Google Maps loaded successfully");
         window.googleMapsLoaded = true;
         setIsReady(true);
       };
 
-      script.onerror = () => {
-        setError("Google Maps yüklenemedi");
+      script.onerror = (e) => {
+        console.error("Google Maps script error:", e);
+        setError("Google Maps yüklenemedi - Script hatası");
       };
 
       document.head.appendChild(script);
+    }).catch((err) => {
+      console.error("Failed to get API key:", err);
+      setError("API key alınamadı");
     });
   }, []);
 
