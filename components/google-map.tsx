@@ -86,31 +86,30 @@ export function GoogleMap({
 
     // API key'i doğrudan kullan
     const apiKey = getGoogleMapsApiKey();
-      if (!apiKey) {
-        setError("Google Maps API key bulunamadı");
-        return;
-      }
-
-      console.log("Loading Google Maps with key...");
-      
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
-      script.async = true;
-      script.defer = true;
-
-      window.initGoogleMaps = () => {
-        console.log("Google Maps loaded successfully");
-        window.googleMapsLoaded = true;
-        setIsReady(true);
-      };
-
-      script.onerror = (e) => {
-        console.error("Google Maps script error:", e);
-        setError("Google Maps yüklenemedi - Script hatası");
-      };
-
-      document.head.appendChild(script);
+    if (!apiKey) {
+      setError("Google Maps API key bulunamadı");
+      return;
     }
+
+    console.log("Loading Google Maps with key...");
+    
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
+    script.async = true;
+    script.defer = true;
+
+    window.initGoogleMaps = () => {
+      console.log("Google Maps loaded successfully");
+      window.googleMapsLoaded = true;
+      setIsReady(true);
+    };
+
+    script.onerror = (e) => {
+      console.error("Google Maps script error:", e);
+      setError("Google Maps yüklenemedi - Script hatası");
+    };
+
+    document.head.appendChild(script);
   }, []);
 
   // Initialize map - only once when ready
