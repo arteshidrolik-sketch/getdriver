@@ -1,19 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
+
 
 // Sunucu tarafında saklanır, tarayıcıya gönderilmez
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 
 export async function GET(req: NextRequest) {
   try {
-    // Kimlik doğrulama: sadece oturum açmış kullanıcılar
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
-    }
+    // Kimlik doğrulama kaldırıldı - herkese açık
 
     const { searchParams } = new URL(req.url);
     const input = searchParams.get("input");
