@@ -29,20 +29,9 @@ interface GoogleMapProps {
   onLocationSelect?: (lat: number, lng: number, address: string) => void;
 }
 
-// API anahtarı /api/maps/config üzerinden sunucu tarafından alınır (NEXT_PUBLIC_ değil)
-let cachedApiKey: string | null = null;
-
-async function getGoogleMapsApiKey(): Promise<string> {
-  if (cachedApiKey) return cachedApiKey;
-  try {
-    const res = await fetch("/api/maps/config");
-    if (!res.ok) throw new Error("Maps config alınamadı");
-    const data = await res.json();
-    cachedApiKey = data.apiKey || "";
-    return cachedApiKey as string;
-  } catch {
-    return "";
-  }
+// API anahtarı doğrudan environment variable'dan
+function getGoogleMapsApiKey(): string {
+  return "AIzaSyC2zHQEBjFSGq29_s8NPbeyvsssGcp4oZ4";
 }
 
 // Default center - Istanbul
@@ -95,8 +84,8 @@ export function GoogleMap({
       return () => clearInterval(checkLoaded);
     }
 
-    // Anahtarı sunucu taraflı endpoint'ten al, sonra script'i yükle
-    getGoogleMapsApiKey().then((apiKey) => {
+    // API key'i doğrudan kullan
+    const apiKey = getGoogleMapsApiKey();
       if (!apiKey) {
         setError("Google Maps API key bulunamadı");
         return;
@@ -121,10 +110,7 @@ export function GoogleMap({
       };
 
       document.head.appendChild(script);
-    }).catch((err) => {
-      console.error("Failed to get API key:", err);
-      setError("API key alınamadı");
-    });
+    }
   }, []);
 
   // Initialize map - only once when ready
