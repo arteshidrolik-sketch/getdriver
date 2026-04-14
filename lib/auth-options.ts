@@ -31,7 +31,35 @@ export const authOptions: NextAuthOptions = {
         if (!user || !user.password) {
           throw new Error("Kullanıcı bulunamadı");
         }
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+        
+        // Şifre hash formatını kontrol et
+        let isValid = false;
+        const passwordHash = user.password;
+        
+        // bcrypt hash formatı: $2a$10$... veya $2b$10$...
+        if (passwordHash.startsWith('$2')) {
+          // bcrypt hash - normal karşılaştırma
+          isValid = await bcrypt.compare(credentials.password, passwordHash);
+        } else {
+          // Eski format (düz metin veya başka bir hash)
+          // Düz metin karşılaştırma dene
+          isValid = credentials.password === passwordHash;
+          
+          // Eğer eşleşirse, bcrypt'e çevir ve güncelle
+          if (isValid) {
+            try {
+              const newHash = await bcrypt.hash(credentials.password, 10);
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { password: newHash },
+              });
+              console.log(`[Auth] Şifre bcrypt formatına çevrildi - Kullanıcı: ${user.id}`);
+            } catch (hashError) {
+              console.error("[Auth] Şifre çevirme hatası:", hashError);
+            }
+          }
+        }
+        
         if (!isValid) {
           throw new Error("Hatalı şifre");
         }
