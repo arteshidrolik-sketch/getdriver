@@ -4,6 +4,74 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/db";
+import { calculateDistance } from "@/lib/utils";
+
+// En yakın online sürücüleri bul ve bildirim gönder
+async function findAndNotifyNearbyDrivers(rideRequest: any) {
+  const { pickupLat, pickupLng, id: requestId, pickupAddress, dropoffAddress } = rideRequest;
+
+  // Online ve onaylı sürücüleri bul
+  const onlineDrivers = await prisma.driver.findMany({
+    where: {
+      isOnline: true,
+      approvalStatus: "APPROVED",
+      currentLat: { not: null },
+      currentLng: { not: null },
+    },
+    include: {
+      user: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+
+  if (onlineDrivers.length === 0) {
+    console.log("[DriverMatch] Online sürücü bulunamadı");
+    return;
+  }
+
+  // Mesafeye göre sırala (en yakın ilk)
+  const driversWithDistance = onlineDrivers
+    .map((driver) => ({
+      ...driver,
+      distance: calculateDistance(
+        pickupLat,
+        pickupLng,
+        driver.currentLat!,
+        driver.currentLng!
+      ),
+    }))
+    .filter((d) => d.distance <= 50) // 50km yarıçap
+    .sort((a, b) => a.distance - b.distance);
+
+  if (driversWithDistance.length === 0) {
+    console.log("[DriverMatch] 50km içinde sürücü bulunamadı");
+    return;
+  }
+
+  console.log(`[DriverMatch] ${driversWithDistance.length} sürücü bulundu`);
+
+  // İlk 5 sürücüye bildirim gönder (broadcast mantığı)
+  const topDrivers = driversWithDistance.slice(0, 5);
+
+  for (const driver of topDrivers) {
+    try {
+      // Push notification gönder
+      const { sendPushNotification } = await import("@/lib/push-notification");
+      await sendPushNotification(driver.user.id, {
+        title: "🚗 Yeni Talep!",
+        body: `${pickupAddress} → ${dropoffAddress} | ${driver.distance.toFixed(1)} km uzakta`,
+        url: `/surucu/talepler`,
+        tag: `request-${requestId}`,
+        actions: [{ action: "view", title: "Görüntüle" }],
+      });
+
+      console.log(`[DriverMatch] Bildirim gönderildi: ${driver.user.name} (${driver.distance.toFixed(1)} km)`);
+    } catch (error) {
+      console.error(`[DriverMatch] Bildirim hatası (${driver.user.name}):`, error);
+    }
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -97,6 +165,14 @@ export async function POST(request: Request) {
         expiresAt,
       },
     });
+
+    // En yakın online sürücüleri bul ve bildirim gönder
+    try {
+      await findAndNotifyNearbyDrivers(rideRequest);
+    } catch (notifyError) {
+      console.error("Driver notification error:", notifyError);
+      // Bildirim hatası talebi engellemesin
+    }
 
     return NextResponse.json({
       success: true,

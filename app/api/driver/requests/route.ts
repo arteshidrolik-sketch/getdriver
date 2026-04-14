@@ -59,14 +59,18 @@ export async function GET(request: Request) {
       });
     }
 
-    // Add distance info
-    const requestsWithDistance = filteredRequests.map((r) => ({
-      ...r,
-      distance: (lat !== null && lng !== null && lat !== 0 && lng !== 0) 
-        ? calculateDistance(lat, lng, r.pickupLat, r.pickupLng) 
-        : null,
-      alreadyOffered: r.offers.length > 0,
-    }));
+    // Add distance info and check driver's pending offers
+    const requestsWithDistance = filteredRequests.map((r) => {
+      const myPendingOffer = r.offers.find((o: any) => o.driverId === driver.id && o.status === "PENDING");
+      return {
+        ...r,
+        distance: (lat !== null && lng !== null && lat !== 0 && lng !== 0)
+          ? calculateDistance(lat, lng, r.pickupLat, r.pickupLng)
+          : null,
+        alreadyOffered: r.offers.length > 0,
+        myPendingOffer: myPendingOffer || null,
+      };
+    });
 
     return NextResponse.json({ requests: requestsWithDistance });
   } catch (error) {

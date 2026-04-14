@@ -133,6 +133,95 @@ export default function DriverRequestsPage() {
     }
   };
 
+  // Otomatik teklifi kabul et
+  const handleAcceptAutoOffer = async (requestId: string) => {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/rides/offer/accept-auto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        toast({
+          title: "Teklif Kabul Edildi!",
+          description: "Yolculuk başlıyor...",
+          variant: "success",
+        });
+        // Yolculuk sayfasına yönlendir
+        router.push(`/surucu/yolculuk/${data.rideId}`);
+      } else {
+        toast({
+          title: "Hata",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Teklif kabul edilemedi",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Otomatik teklifi reddet
+  const handleRejectAutoOffer = async (requestId: string) => {
+    setSubmitting(true);
+    try {
+      // Önce bu talebe verilmiş teklifi bul
+      const res = await fetch("/api/driver/my-offers");
+      const data = await res.json();
+      
+      const myOffer = data.offers?.find((o: any) => o.requestId === requestId && o.status === "PENDING");
+      
+      if (!myOffer) {
+        toast({
+          title: "Hata",
+          description: "Aktif teklif bulunamadı",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const rejectRes = await fetch("/api/rides/offer/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offerId: myOffer.id }),
+      });
+
+      const rejectData = await rejectRes.json();
+      if (rejectData.success) {
+        toast({
+          title: "Teklif Reddedildi",
+          description: rejectData.nextDriver 
+            ? `Sonraki sürücüye gönderildi: ${rejectData.nextDriver.name}`
+            : "Başka sürücü kalmadı",
+        });
+        fetchRequests(false);
+      } else {
+        toast({
+          title: "Hata",
+          description: rejectData.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Teklif reddedilemedi",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -203,7 +292,33 @@ export default function DriverRequestsPage() {
                     </p>
 
                     <div className="mt-3">
-                      {request?.alreadyOffered ? (
+                      {request?.myPendingOffer ? (
+                        <div className="space-y-2">
+                          <Badge variant="default" className="bg-blue-100 text-blue-800">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Teklifiniz: {formatPrice(request.myPendingOffer.price)} TL
+                          </Badge>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 flex-1"
+                              onClick={() => handleAcceptAutoOffer(request.id)}
+                              disabled={submitting}
+                            >
+                              Kabul Et
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => handleRejectAutoOffer(request.id)}
+                              disabled={submitting}
+                            >
+                              Reddet
+                            </Button>
+                          </div>
+                        </div>
+                      ) : request?.alreadyOffered ? (
                         <Badge variant="secondary">
                           <Clock className="h-3 w-3 mr-1" />
                           Teklif verildi
