@@ -135,23 +135,23 @@ export async function PATCH(
       if (status === "COMPLETED") {
         updateData.completedAt = new Date();
 
-        // Update driver stats
-        await prisma.driver.update({
-          where: { userId },
-          data: {
-            totalRides: { increment: 1 },
-            totalEarnings: { increment: ride.driverAmount }
-          }
-        });
+        // Update driver stats - payment callback'de yapılacak
+        // await prisma.driver.update({
+        //   where: { userId },
+        //   data: {
+        //     totalRides: { increment: 1 },
+        //     totalEarnings: { increment: ride.driverAmount }
+        //   }
+        // });
 
-        // Update payment status
-        await prisma.payment.updateMany({
-          where: { rideId: ride.id },
-          data: {
-            status: "COMPLETED",
-            paidAt: new Date()
-          }
-        });
+        // Ödeme durumunu PENDING olarak bırak - müşteri ödeme yapacak
+        // await prisma.payment.updateMany({
+        //   where: { rideId: ride.id },
+        //   data: {
+        //     status: "COMPLETED",
+        //     paidAt: new Date()
+        //   }
+        // });
       }
 
       if (status === "CANCELLED") {

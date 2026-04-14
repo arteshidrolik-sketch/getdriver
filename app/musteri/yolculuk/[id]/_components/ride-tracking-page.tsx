@@ -33,7 +33,8 @@ import {
   RefreshCw,
   XCircle,
   Loader2,
-  Radio
+  Radio,
+  Wallet
 } from "lucide-react";
 import { formatPrice, formatDate, getStatusText, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -378,12 +379,23 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
             <span className="text-xl font-bold text-green-600">{formatPrice(ride.price)}</span>
           </div>
           {ride.payment && (
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-gray-500">Ödeme Durumu</span>
-              <Badge className={ride.payment.status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
-                {ride.payment.status === "COMPLETED" ? "Ödendi" : "Bekliyor"}
-              </Badge>
-            </div>
+            <>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-gray-500">Ödeme Durumu</span>
+                <Badge className={ride.payment.status === "COMPLETED" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}>
+                  {ride.payment.status === "COMPLETED" ? "Ödendi" : "Bekliyor"}
+                </Badge>
+              </div>
+              {/* Ödeme butonu - Yolculuk tamamlandı ve ödeme bekliyorsa */}
+              {ride.status === "COMPLETED" && ride.payment.status !== "COMPLETED" && (
+                <Link href={`/musteri/odeme?rideId=${ride.id}`} className="block mt-4">
+                  <Button className="w-full bg-green-600 hover:bg-green-700">
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Ödeme Yap
+                  </Button>
+                </Link>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
