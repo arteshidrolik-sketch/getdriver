@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Power, MapPin, Clock, Wallet, Star, AlertTriangle, Navigation, CheckCircle2, XCircle } from "lucide-react";
+import { Power, MapPin, Clock, Wallet, Star, AlertTriangle, Navigation, CheckCircle2, XCircle, Car, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +18,27 @@ interface DriverDashboardProps {
   todayEarnings: number;
 }
 
+interface NearbyRequest {
+  id: string;
+  pickupAddress: string;
+  dropoffAddress: string;
+  distance: number;
+  customer: {
+    name: string;
+    profilePhoto?: string;
+  };
+  vehicle: {
+    brand: string;
+    model: string;
+    plate: string;
+  };
+}
+
 export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDashboardProps) {
   const [isOnline, setIsOnline] = useState(driver?.isOnline || false);
   const [loading, setLoading] = useState(false);
+  const [nearbyRequests, setNearbyRequests] = useState<NearbyRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,6 +46,59 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
   const isRejected = driver?.approvalStatus === "REJECTED";
   const isApproved = driver?.approvalStatus === "APPROVED";
   const activeRide = driver?.rides?.[0];
+
+  // Online olduğunda yakındaki talepleri getir
+  useEffect(() => {
+    if (isOnline && !activeRide) {
+      fetchNearbyRequests();
+      // Her 30 saniyede bir yenile
+      const interval = setInterval(fetchNearbyRequests, 30000);
+      return () => clearInterval(interval);
+    } else {
+      setNearbyRequests([]);
+    }
+  }, [isOnline, activeRide]);
+
+  const fetchNearbyRequests = async () => {
+    if (!isOnline) return;
+    
+    setLoadingRequests(true);
+    try {
+      let lat: number | null = null;
+      let lng: number | null = null;
+      
+      if (navigator.geolocation) {
+        await new Promise<void>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              lat = pos.coords.latitude;
+              lng = pos.coords.longitude;
+              resolve();
+            },
+            () => resolve(),
+            { timeout: 5000 }
+          );
+        });
+      }
+
+      const url = lat && lng 
+        ? `/api/driver/requests?lat=${lat}&lng=${lng}&radius=15`
+        : `/api/driver/requests`;
+      
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.requests) {
+        // Sadece teklif verilmemiş talepleri göster
+        const availableRequests = data.requests.filter((r: any) => !r.alreadyOffered);
+        setNearbyRequests(availableRequests.slice(0, 3)); // En fazla 3 talep göster
+      }
+    } catch (error) {
+      console.error("Fetch requests error:", error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
 
   const toggleOnline = async () => {
     if (!isApproved) return;
@@ -234,22 +305,105 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
             </CardContent>
           </Card>
 
-          {/* Quick Links */}
+          {/* Nearby Requests - Online ve aktif sürüş yoksa göster */}
           {isOnline && !activeRide && (
-            <Link href="/surucu/talepler">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-                <CardContent className="p-6 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-8 w-8 text-green-600" />
-                    <div>
-                      <h3 className="font-semibold">Yakındaki Talepleri Gör</h3>
-                      <p className="text-sm text-muted-foreground">Teklif verin ve kazanın</p>
-                    </div>
-                  </div>
-                  <Button className="bg-green-600 hover:bg-green-700">Görüntüle</Button>
-                </CardContent>
-              </Card>
-            </Link>
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-green-600" />
+                  Yakındaki Talepler
+                </h3>
+                <Link href="/surucu/talepler">
+                  <Button variant="outline" size="sm">Tümünü Gör</Button>
+                </Link>
+              </div>
+
+              {loadingRequests ? (
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto" />
+                    <p className="text-sm text-muted-foreground mt-2">Talepler aranıyor...</p>
+                  </CardContent>
+                </Card>
+              ) : nearbyRequests.length === 0 ? (
+                <Card className="bg-gray-50 dark:bg-gray-900/50">
+                  <CardContent className="p-6 text-center">
+                    <MapPin className="h-10 w-10 mx-auto text-gray-400 mb-2" />
+                    <p className="text-muted-foreground">Yakında talep yok</p>
+                    <p className="text-xs text-muted-foreground">Yeni talepler geldiğinde burada görünecek</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {nearbyRequests.map((request) => (
+                    <Card key={request.id} className="hover:shadow-md transition-shadow border-l-4 border-l-green-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={request.customer?.profilePhoto} />
+                            <AvatarFallback>{request.customer?.name?.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium truncate">{request.customer?.name}</span>
+                              {request.distance && (
+                                <Badge variant="outline" className="text-green-600">
+                                  {request.distance.toFixed(1)} km
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="mt-2 space-y-1 text-sm">
+                              <p className="flex items-center gap-1 text-green-600 truncate">
+                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                {request.pickupAddress}
+                              </p>
+                              <p className="flex items-center gap-1 text-blue-600 truncate">
+                                <Navigation className="h-3 w-3 flex-shrink-0" />
+                                {request.dropoffAddress}
+                              </p>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                              <Car className="h-3 w-3" />
+                              {request.vehicle?.brand} {request.vehicle?.model} - {request.vehicle?.plate}
+                            </p>
+
+                            <div className="mt-3">
+                              <Link href={`/surucu/talepler`}>
+                                <Button size="sm" className="w-full bg-green-600 hover:bg-green-700">
+                                  Teklif Ver
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Offline uyarısı */}
+          {!isOnline && isApproved && !activeRide && (
+            <Card className="bg-gray-50 dark:bg-gray-900/50 border-dashed">
+              <CardContent className="p-6 text-center">
+                <Power className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                <h3 className="font-semibold mb-1">Çevrimdışısınız</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Talep almak için çevrimiçi olmanız gerekiyor
+                </p>
+                <Button 
+                  onClick={toggleOnline} 
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {loading ? "Yükleniyor..." : "Çevrimiçi Ol"}
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
