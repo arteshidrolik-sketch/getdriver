@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +29,8 @@ import {
   CreditCard,
   Loader2,
   X,
-  Upload
+  Upload,
+  Radio
 } from "lucide-react";
 import { formatPrice, getStatusText, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -59,7 +60,10 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   const [cancelReason, setCancelReason] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
+  const [locationSharing, setLocationSharing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const request = ride.request;
   const customer = request.customer;
@@ -70,6 +74,95 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   const isPhotoStep = ride.status === "PHOTO_BEFORE" || ride.status === "PHOTO_AFTER";
   const isCompleted = ride.status === "COMPLETED";
   const isCancelled = ride.status === "CANCELLED";
+  const isActive = !isCompleted && !isCancelled;
+
+  // Konum paylaşımını başlat/durdur
+  useEffect(() => {
+    if (isActive && locationSharing) {
+      // İlk konum al
+      updateLocation();
+      
+      // Her 5 saniyede bir konum güncelle
+      locationIntervalRef.current = setInterval(updateLocation, 5000);
+      
+      return () => {
+        if (locationIntervalRef.current) {
+          clearInterval(locationIntervalRef.current);
+        }
+      };
+    }
+  }, [isActive, locationSharing, ride.id]);
+
+  // Konum güncelleme fonksiyonu
+  const updateLocation = async () => {
+    if (!navigator.geolocation) {
+      console.error("Geolocation desteklenmiyor");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setCurrentLocation({ lat: latitude, lng: longitude });
+
+        try {
+          const res = await fetch("/api/rides/location/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rideId: ride.id,
+              lat: latitude,
+              lng: longitude,
+            }),
+          });
+
+          if (!res.ok) {
+            console.error("Konum güncelleme hatası");
+          }
+        } catch (error) {
+          console.error("Konum gönderme hatası:", error);
+        }
+      },
+      (error) => {
+        console.error("Konum alma hatası:", error);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  // Konum paylaşımını toggle et
+  const toggleLocationSharing = () => {
+    if (!locationSharing) {
+      // Başlat
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setLocationSharing(true);
+            toast({
+              title: "Konum Paylaşımı Aktif",
+              description: "Müşteri sizi canlı takip edebilir",
+            });
+          },
+          () => {
+            toast({
+              title: "Hata",
+              description: "Konum izni gerekli",
+              variant: "destructive",
+            });
+          }
+        );
+      }
+    } else {
+      // Durdur
+      setLocationSharing(false);
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current);
+      }
+      toast({
+        title: "Konum Paylaşımı Durduruldu",
+      });
+    }
+  };
 
   const handleStatusUpdate = async (newStatus: string, photoUrl?: string) => {
     setLoading(true);
@@ -265,20 +358,65 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
         </CardContent>
       </Card>
 
+      {/* Live Location Sharing Toggle */}
+      {isActive && (
+        <Card className={`mb-4 ${locationSharing ? 'border-green-500 bg-green-50/50' : ''}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${locationSharing ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <Radio className={`h-5 w-5 ${locationSharing ? 'text-green-600 animate-pulse' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold">
+                    {locationSharing ? "Konum Paylaşılıyor" : "Canlı Konum Paylaşımı"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {locationSharing 
+                      ? "Müşteri sizi canlı takip ediyor" 
+                      : "Müşterinin sizi takip etmesini sağlayın"}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant={locationSharing ? "default" : "outline"}
+                size="sm"
+                onClick={toggleLocationSharing}
+                className={locationSharing ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                {locationSharing ? "Durdur" : "Başlat"}
+              </Button>
+            </div>
+            {currentLocation && locationSharing && (
+              <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
+                Son konum: {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Map */}
       <Card className="mb-4">
         <CardContent className="p-0">
-          <div className="h-48 rounded-lg overflow-hidden">
+          <div className="h-64 rounded-lg overflow-hidden relative">
             <GoogleMap
               className="w-full h-full"
               markers={[
                 { lat: request.pickupLat, lng: request.pickupLng, title: "Alış" },
-                { lat: request.dropoffLat, lng: request.dropoffLng, title: "Bırakış" }
+                { lat: request.dropoffLat, lng: request.dropoffLng, title: "Bırakış" },
+                ...(currentLocation ? [{ lat: currentLocation.lat, lng: currentLocation.lng, title: "Sürücü" }] : [])
               ]}
               showRoute
               origin={{ lat: request.pickupLat, lng: request.pickupLng }}
               destination={{ lat: request.dropoffLat, lng: request.dropoffLng }}
+              driverLocation={currentLocation || undefined}
             />
+            {locationSharing && (
+              <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                CANLI
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

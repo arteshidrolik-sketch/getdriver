@@ -27,6 +27,7 @@ interface GoogleMapProps {
   className?: string;
   pickMode?: boolean;
   onLocationSelect?: (lat: number, lng: number, address: string) => void;
+  driverLocation?: { lat: number; lng: number };
 }
 
 // API anahtarı doğrudan environment variable'dan
@@ -48,6 +49,7 @@ export function GoogleMap({
   className = "w-full h-[400px]",
   pickMode = false,
   onLocationSelect,
+  driverLocation,
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -56,6 +58,7 @@ export function GoogleMap({
   const markersRef = useRef<any[]>([]);
   const directionsRendererRef = useRef<any>(null);
   const pickMarkerRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
   const onLocationSelectRef = useRef(onLocationSelect);
   const onMapClickRef = useRef(onMapClick);
 
@@ -173,12 +176,15 @@ export function GoogleMap({
     const map = mapInstanceRef.current;
     if (!map || !window.google?.maps) return;
 
-    // Clear old markers
+    // Clear old markers (except driver marker)
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
     // Add new markers
     markers.forEach((marker) => {
+      // Skip driver marker here, handle separately
+      if (marker.title === "Sürücü") return;
+      
       const m = new window.google.maps.Marker({
         position: { lat: marker.lat, lng: marker.lng },
         map,
@@ -187,6 +193,37 @@ export function GoogleMap({
       markersRef.current.push(m);
     });
   }, [isReady, markers]);
+
+  // Update driver marker separately for smooth animation
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.google?.maps) return;
+
+    if (driverLocation) {
+      if (driverMarkerRef.current) {
+        // Update existing marker position
+        driverMarkerRef.current.setPosition({
+          lat: driverLocation.lat,
+          lng: driverLocation.lng,
+        });
+      } else {
+        // Create new driver marker with custom icon
+        driverMarkerRef.current = new window.google.maps.Marker({
+          position: { lat: driverLocation.lat, lng: driverLocation.lng },
+          map,
+          title: "Sürücü",
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#16a34a",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+        });
+      }
+    }
+  }, [isReady, driverLocation]);
 
   // Show route
   useEffect(() => {

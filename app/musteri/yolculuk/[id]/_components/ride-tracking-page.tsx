@@ -32,7 +32,8 @@ import {
   AlertTriangle,
   RefreshCw,
   XCircle,
-  Loader2
+  Loader2,
+  Radio
 } from "lucide-react";
 import { formatPrice, formatDate, getStatusText, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +41,12 @@ import { GoogleMap } from "@/components/google-map";
 
 interface RideTrackingPageProps {
   ride: any;
+}
+
+interface DriverLocation {
+  lat: number;
+  lng: number;
+  lastUpdate: string;
 }
 
 const RIDE_STEPS = [
@@ -59,6 +66,8 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
+  const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const currentStepIndex = RIDE_STEPS.findIndex(s => s.status === ride.status);
   const progress = ((currentStepIndex + 1) / RIDE_STEPS.length) * 100;
@@ -76,6 +85,26 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
       console.error("Refresh error:", error);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  // Sürücü konumunu getir
+  const fetchDriverLocation = async () => {
+    if (ride.status === "COMPLETED" || ride.status === "CANCELLED") return;
+    
+    setLocationLoading(true);
+    try {
+      const res = await fetch(`/api/rides/location/get?rideId=${ride.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.driverLocation?.lat && data.driverLocation?.lng) {
+          setDriverLocation(data.driverLocation);
+        }
+      }
+    } catch (error) {
+      console.error("Location fetch error:", error);
+    } finally {
+      setLocationLoading(false);
     }
   };
 
@@ -119,7 +148,7 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
     }
   };
 
-  // Auto-refresh every 10 seconds for active rides
+  // Auto-refresh ride status every 10 seconds
   useEffect(() => {
     if (ride.status !== "COMPLETED" && ride.status !== "CANCELLED") {
       const interval = setInterval(refreshRide, 10000);
@@ -127,10 +156,20 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
     }
   }, [ride.status]);
 
+  // Auto-refresh driver location every 5 seconds
+  useEffect(() => {
+    if (ride.status !== "COMPLETED" && ride.status !== "CANCELLED") {
+      fetchDriverLocation(); // İlk çağrı
+      const interval = setInterval(fetchDriverLocation, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [ride.id, ride.status]);
+
   const driver = ride.driver;
   const request = ride.request;
   const isCompleted = ride.status === "COMPLETED";
   const isCancelled = ride.status === "CANCELLED";
+  const isActive = !isCompleted && !isCancelled;
 
   return (
     <div className="p-4 md:p-6 max-w-2xl mx-auto">
@@ -234,20 +273,55 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
         </CardContent>
       </Card>
 
-      {/* Map */}
+      {/* Live Driver Location */}
+      {isActive && (
+        <Card className={`mb-4 ${driverLocation ? 'border-green-500 bg-green-50/30' : ''}`}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${driverLocation ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <Radio className={`h-5 w-5 ${driverLocation ? 'text-green-600 animate-pulse' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <h3 className="font-semibold">
+                    {driverLocation ? "Sürücü Canlı Takip" : "Sürücü Konumu Bekleniyor"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {driverLocation 
+                      ? `Son güncelleme: ${new Date(driverLocation.lastUpdate).toLocaleTimeString('tr-TR')}`
+                      : "Sürücü konum paylaşımı başlatmadı"}
+                  </p>
+                </div>
+              </div>
+              {locationLoading && (
+                <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Map with Live Driver Location */}
       <Card className="mb-4">
         <CardContent className="p-0">
-          <div className="h-48 rounded-lg overflow-hidden">
+          <div className="h-64 rounded-lg overflow-hidden relative">
             <GoogleMap
               className="w-full h-full"
               markers={[
                 { lat: request.pickupLat, lng: request.pickupLng, title: "Alış" },
-                { lat: request.dropoffLat, lng: request.dropoffLng, title: "Bırakış" }
+                { lat: request.dropoffLat, lng: request.dropoffLng, title: "Bırakış" },
+                ...(driverLocation ? [{ lat: driverLocation.lat, lng: driverLocation.lng, title: "Sürücü" }] : [])
               ]}
               showRoute
               origin={{ lat: request.pickupLat, lng: request.pickupLng }}
               destination={{ lat: request.dropoffLat, lng: request.dropoffLng }}
+              driverLocation={driverLocation || undefined}
             />
+            {driverLocation && (
+              <div className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                CANLI TAKİP
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
