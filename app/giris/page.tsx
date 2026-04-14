@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { signIn } from "next-auth/react";
 
 // Google Icon SVG
 const GoogleIcon = () => (
@@ -158,6 +159,11 @@ export default function LoginPage() {
 
 
           <div className="mt-6 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              <Link href="/sifremi-unuttum" className="text-green-600 hover:underline font-medium">
+                Şifremi Unuttum
+              </Link>
+            </p>
             <p className="text-sm text-muted-foreground">
               Hesabınız yok mu?{" "}
               <Link href="/kayit" className="text-green-600 hover:underline font-medium">
