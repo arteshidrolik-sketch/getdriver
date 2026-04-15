@@ -92,6 +92,8 @@ export async function POST(request: Request) {
       dropoffLng,
       dropoffAddress,
       notes,
+      isReservation,
+      scheduledAt,
     } = body;
 
     // Validate vehicle ownership
@@ -145,9 +147,18 @@ export async function POST(request: Request) {
       where: { id: "settings" },
     });
 
-    const expiresAt = new Date(
-      Date.now() + (settings?.maxOfferWaitMin || 15) * 60 * 1000
-    );
+    // Rezervasyon kontrolü
+    const isRes = isReservation === true;
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
+    
+    // Şimdi talep için expiresAt hesapla
+    // Rezervasyon için scheduledAt'dan önce expires
+    let expiresAt: Date;
+    if (isRes && scheduledDate) {
+      expiresAt = new Date(scheduledDate.getTime() + 60 * 60 * 1000); // 1 saat sonra expires
+    } else {
+      expiresAt = new Date(Date.now() + (settings?.maxOfferWaitMin || 15) * 60 * 1000);
+    }
 
     const rideRequest = await prisma.rideRequest.create({
       data: {
@@ -161,17 +172,24 @@ export async function POST(request: Request) {
         dropoffLng,
         dropoffAddress,
         notes,
-        status: "ACTIVE",
+        status: isRes ? "ACTIVE" : "ACTIVE",
         expiresAt,
+        isReservation: isRes,
+        scheduledAt: scheduledDate,
       },
     });
 
-    // En yakın online sürücüleri bul ve bildirim gönder
-    try {
-      await findAndNotifyNearbyDrivers(rideRequest);
-    } catch (notifyError) {
-      console.error("Driver notification error:", notifyError);
-      // Bildirim hatası talebi engellemesin
+    // Şimdi talep ise hemen sürücü ara, rezervasyon ise bildirim zamanla
+    if (!isRes) {
+      // En yakın online sürücüleri bul ve bildirim gönder
+      try {
+        await findAndNotifyNearbyDrivers(rideRequest);
+      } catch (notifyError) {
+        console.error("Driver notification error:", notifyError);
+        // Bildirim hatası talebi engellemesin
+      }
+    } else {
+      console.log(`[Reservation] Rezervasyon oluşturuldu - ID: ${rideRequest.id}, Zaman: ${scheduledDate}`);
     }
 
     return NextResponse.json({

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Car, Navigation, Loader2, Info, LocateFixed, Search, X, Home, Briefcase, Star, ChevronDown, CreditCard, AlertTriangle, Plus } from "lucide-react";
+import { MapPin, Car, Navigation, Loader2, Info, LocateFixed, Search, X, Home, Briefcase, Star, ChevronDown, CreditCard, AlertTriangle, Plus, Calendar, Clock } from "lucide-react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { GoogleMap } from "@/components/google-map";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,6 +43,11 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  
+  // Rezervasyon states
+  const [isReservation, setIsReservation] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledTime, setScheduledTime] = useState("");
   
   // Search states
   const [pickupSearch, setPickupSearch] = useState("");
@@ -270,33 +276,71 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
       return;
     }
 
+    // Rezervasyon kontrolü
+    if (isReservation) {
+      if (!scheduledDate || !scheduledTime) {
+        toast({
+          title: "Hata",
+          description: "Lütfen rezervasyon tarihi ve saati seçin",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const scheduledAt = new Date(`${scheduledDate}T${scheduledTime}`);
+      const now = new Date();
+      const minReservationTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 dakika sonra
+
+      if (scheduledAt < minReservationTime) {
+        toast({
+          title: "Hata",
+          description: "Rezervasyon en az 30 dakika sonra olmalıdır",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
+      const body: any = {
+        vehicleId: selectedVehicle,
+        paymentMethodId: selectedPaymentMethod,
+        pickupLat: pickup.lat,
+        pickupLng: pickup.lng,
+        pickupAddress: pickup.address,
+        dropoffLat: dropoff.lat,
+        dropoffLng: dropoff.lng,
+        dropoffAddress: dropoff.address,
+        notes,
+      };
+
+      // Rezervasyon bilgilerini ekle
+      if (isReservation && scheduledDate && scheduledTime) {
+        body.isReservation = true;
+        body.scheduledAt = `${scheduledDate}T${scheduledTime}`;
+      }
+
       const res = await fetch("/api/rides/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vehicleId: selectedVehicle,
-          paymentMethodId: selectedPaymentMethod,
-          pickupLat: pickup.lat,
-          pickupLng: pickup.lng,
-          pickupAddress: pickup.address,
-          dropoffLat: dropoff.lat,
-          dropoffLng: dropoff.lng,
-          dropoffAddress: dropoff.address,
-          notes,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
 
       if (data.success) {
         toast({
-          title: "Talep Oluşturuldu",
-          description: "Sürücülerden teklif bekleniyor",
+          title: isReservation ? "Rezervasyon Oluşturuldu" : "Talep Oluşturuldu",
+          description: isReservation 
+            ? "Rezervasyonunuz kaydedildi. Sürücüye bildirim gönderilecek."
+            : "Sürücülerden teklif bekleniyor",
           variant: "success",
         });
-        router.push(`/musteri/talep/${data.requestId}`);
+        router.push(isReservation 
+          ? `/musteri/rezervasyonlar` 
+          : `/musteri/talep/${data.requestId}`
+        );
       } else {
         toast({
           title: "Hata",
@@ -338,6 +382,68 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
               ))}
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      {/* Reservation Toggle */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-green-600" />
+            Rezervasyon
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="reservation">İleri Tarihli Rezervasyon</Label>
+              <p className="text-sm text-muted-foreground">
+                {isReservation 
+                  ? "Belirli bir saatte sürücü ayırtın" 
+                  : "Hemen şimdi sürücü bulun"}
+              </p>
+            </div>
+            <Switch
+              id="reservation"
+              checked={isReservation}
+              onCheckedChange={setIsReservation}
+            />
+          </div>
+
+          {isReservation && (
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div className="space-y-2">
+                <Label htmlFor="date" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Tarih
+                </Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  required={isReservation}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="time" className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Saat
+                </Label>
+                <Input
+                  id="time"
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  required={isReservation}
+                />
+              </div>
+              <p className="col-span-2 text-xs text-muted-foreground">
+                * Rezervasyon en az 30 dakika sonra olmalıdır
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -672,13 +778,18 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
       {/* Submit */}
       <Button
         onClick={handleSubmit}
-        disabled={loading || !pickup || !dropoff || !selectedVehicle || !selectedPaymentMethod}
+        disabled={loading || !pickup || !dropoff || !selectedVehicle || !selectedPaymentMethod || (isReservation && (!scheduledDate || !scheduledTime))}
         className="w-full h-12 bg-green-600 hover:bg-green-700 text-lg"
       >
         {loading ? (
           <>
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             Oluşturuluyor...
+          </>
+        ) : isReservation ? (
+          <>
+            <Calendar className="h-5 w-5 mr-2" />
+            Rezervasyon Yap
           </>
         ) : (
           "Talep Oluştur"

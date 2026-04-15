@@ -286,6 +286,12 @@ model RideRequest {
   notes           String?
   status          RideRequestStatus  @default(ACTIVE)
   expiresAt       DateTime
+  
+  // Rezervasyon alanları
+  isReservation   Boolean            @default(false)
+  scheduledAt     DateTime?          // Rezervasyon tarihi/saati
+  notifiedAt      DateTime?          // Sürücüye bildirim gönderildi mi
+  
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -294,6 +300,8 @@ model RideRequest {
 
   @@index([customerId])
   @@index([status])
+  @@index([isReservation])
+  @@index([scheduledAt])
 }
 
 model RideOffer {
