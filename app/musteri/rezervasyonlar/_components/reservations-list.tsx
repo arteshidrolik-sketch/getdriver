@@ -64,15 +64,30 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
     }
   };
 
-  const handleCancel = async (reservationId: string) => {
-    if (!confirm("Rezervasyonu iptal etmek istediğinizden emin misiniz?")) {
+  const handleCancel = async (reservationId: string, canCancel: boolean, deadline?: Date) => {
+    if (!canCancel) {
+      toast({
+        title: "İptal Edilemez",
+        description: "İptal süresi doldu. Son 1 saat kala iptal edilemez.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const deadlineText = deadline 
+      ? `İptal hakkı: ${deadline.toLocaleString('tr-TR')}` 
+      : '';
+    
+    if (!confirm(`Rezervasyonu iptal etmek istediğinizden emin misiniz?\n\n${deadlineText}\n\nİptal ederseniz ön ödemeniz tamamen iade edilecektir.`)) {
       return;
     }
 
     setLoadingId(reservationId);
     try {
-      const res = await fetch(`/api/rides/request?id=${reservationId}`, {
-        method: "DELETE",
+      const res = await fetch("/api/rides/reservation/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: reservationId }),
       });
 
       const data = await res.json();
@@ -80,13 +95,52 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
       if (data.success) {
         toast({
           title: "Rezervasyon İptal Edildi",
-          description: "Rezervasyonunuz başarıyla iptal edildi",
+          description: `Rezervasyonunuz iptal edildi. ${formatPrice(data.refundAmount)} tutarındaki ön ödemeniz iade edilecektir.`,
         });
         router.refresh();
       } else {
         toast({
           title: "Hata",
           description: data.error || "İptal işlemi başarısız",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Hata",
+        description: "Bir hata oluştu",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleNoShow = async (reservationId: string) => {
+    if (!confirm("Sürücü gelmedi mi?\n\nBu işlem sonucunda:\n- Sürücüye ceza uygulanacak\n- Ön ödemenizin %30'u kesilecek\n- Kalan %70'i iade edilecektir")) {
+      return;
+    }
+
+    setLoadingId(reservationId);
+    try {
+      const res = await fetch("/api/rides/reservation/no-show", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: reservationId }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: "Sürücü Gelmedi Kaydedildi",
+          description: `${formatPrice(data.penaltyAmount)} ceza kesildi. ${formatPrice(data.refundAmount)} iade edilecek.`,
+        });
+        router.refresh();
+      } else {
+        toast({
+          title: "Hata",
+          description: data.error || "İşlem başarısız",
           variant: "destructive",
         });
       }
@@ -127,10 +181,25 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
           ? new Date(reservation.scheduledAt) 
           : null;
         
-        const isPast = scheduledDate && scheduledDate < new Date();
+        const now = new Date();
+        const isPast = scheduledDate && scheduledDate < now;
         const isNotified = !!reservation.notifiedAt;
         const hasOffer = reservation.offers.length > 0;
         const hasAcceptedOffer = reservation.offers.some((o: any) => o.status === "ACCEPTED");
+        
+        // İptal kontrolü
+        const cancellationDeadline = reservation.cancellationDeadline 
+          ? new Date(reservation.cancellationDeadline) 
+          : null;
+        const canCancel = cancellationDeadline ? now < cancellationDeadline : false;
+        const timeUntilDeadline = cancellationDeadline 
+          ? Math.floor((cancellationDeadline.getTime() - now.getTime()) / (1000 * 60)) // dakika
+          : 0;
+        
+        // No-show kontrolü (rezervasyon zamanı geçti ve sürücü gelmedi)
+        const canReportNoShow = scheduledDate 
+          ? (now > scheduledDate && hasAcceptedOffer && !reservation.ride)
+          : false;
 
         return (
           <Card key={reservation.id} className={isPast ? "opacity-60" : ""}>
@@ -219,6 +288,30 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
                 )}
               </div>
 
+              {/* İptal Bilgisi */}
+              {reservation.status === "ACTIVE" && cancellationDeadline && (
+                <div className={`text-xs p-2 rounded ${canCancel ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                  {canCancel ? (
+                    <>
+                      <CheckCircle className="h-3 w-3 inline mr-1" />
+                      İptal hakkı: {timeUntilDeadline > 60 
+                        ? `${Math.floor(timeUntilDeadline / 60)} saat ${timeUntilDeadline % 60} dk` 
+                        : `${timeUntilDeadline} dk`}
+                      {reservation.preAuthAmount > 0 && (
+                        <span className="block mt-1">
+                          İptal ederseniz {formatPrice(reservation.preAuthAmount)} tam iade edilecek
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-3 w-3 inline mr-1" />
+                      İptal süresi doldu. Son 1 saat kala iptal edilemez.
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Aksiyonlar */}
               <div className="flex gap-2 pt-2">
                 {!isPast && reservation.status === "ACTIVE" && (
@@ -250,11 +343,12 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
                       </Link>
                     )}
 
-                    {!hasAcceptedOffer && (
+                    {/* İptal butonu - sadece iptal hakkı varsa */}
+                    {!hasAcceptedOffer && canCancel && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleCancel(reservation.id)}
+                        onClick={() => handleCancel(reservation.id, canCancel, cancellationDeadline || undefined)}
                         disabled={loadingId === reservation.id}
                         className="text-red-600 hover:bg-red-50"
                       >
@@ -269,6 +363,26 @@ export function ReservationsList({ reservations }: ReservationsListProps) {
                       </Button>
                     )}
                   </>
+                )}
+
+                {/* Sürücü gelmedi bildirimi */}
+                {canReportNoShow && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleNoShow(reservation.id)}
+                    disabled={loadingId === reservation.id}
+                    className="flex-1"
+                  >
+                    {loadingId === reservation.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Sürücü Gelmedi
+                      </>
+                    )}
+                  </Button>
                 )}
 
                 {reservation.ride && (

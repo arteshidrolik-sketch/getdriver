@@ -288,9 +288,12 @@ model RideRequest {
   expiresAt       DateTime
   
   // Rezervasyon alanları
-  isReservation   Boolean            @default(false)
-  scheduledAt     DateTime?          // Rezervasyon tarihi/saati
-  notifiedAt      DateTime?          // Sürücüye bildirim gönderildi mi
+  isReservation       Boolean            @default(false)
+  scheduledAt         DateTime?          // Rezervasyon tarihi/saati
+  notifiedAt          DateTime?          // Sürücüye bildirim gönderildi mi
+  cancellationDeadline DateTime?         // İptal son tarihi (1 saat önce)
+  penaltyAmount       Float?             // İptal/no-show ceza tutarı (%30)
+  preAuthAmount       Float?             // Pre-auth tutarı
   
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt

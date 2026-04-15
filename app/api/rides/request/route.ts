@@ -154,8 +154,18 @@ export async function POST(request: Request) {
     // Şimdi talep için expiresAt hesapla
     // Rezervasyon için scheduledAt'dan önce expires
     let expiresAt: Date;
+    let cancellationDeadline: Date | undefined;
+    let preAuthAmount = 0;
+    let penaltyAmount = 0;
+    
     if (isRes && scheduledDate) {
       expiresAt = new Date(scheduledDate.getTime() + 60 * 60 * 1000); // 1 saat sonra expires
+      cancellationDeadline = new Date(scheduledDate.getTime() - 60 * 60 * 1000); // 1 saat önce iptal hakkı biter
+      
+      // Minimum ücreti al ve pre-auth tutarını hesapla
+      const minFare = settings?.minFare || 100;
+      preAuthAmount = minFare; // Pre-auth için minimum tutar
+      penaltyAmount = minFare * 0.3; // %30 ceza
     } else {
       expiresAt = new Date(Date.now() + (settings?.maxOfferWaitMin || 15) * 60 * 1000);
     }
@@ -176,6 +186,9 @@ export async function POST(request: Request) {
         expiresAt,
         isReservation: isRes,
         scheduledAt: scheduledDate,
+        cancellationDeadline,
+        preAuthAmount,
+        penaltyAmount,
       },
     });
 
