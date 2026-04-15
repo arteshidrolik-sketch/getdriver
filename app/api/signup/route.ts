@@ -85,7 +85,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Signup error:", error);
     return NextResponse.json(
-      { error: "Kayıt hatası: " + (error?.message || "Bilinmeyen hata") + " | Code: " + (error?.code || "N/A") },
+      { error: "Kayıt sırasında bir hata oluştu", details: error?.message, code: error?.code },
       { status: 500 }
     );
   }
