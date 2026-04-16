@@ -142,6 +142,8 @@ export default function DriverRegisterPage() {
       const data = await res.json();
 
       if (data.success) {
+        // Eğer mevcut kullanıcıysa, direkt giriş yap
+        // Yeni kullanıcıysa, signup sonrası otomatik giriş yapılacak
         const loginResult = await signIn("credentials", {
           phone: phone.replace(/\D/g, ""),
           password,
@@ -166,7 +168,9 @@ export default function DriverRegisterPage() {
 
           toast({
             title: "Başvuru Alındı",
-            description: "Sürücü başvurunuz incelemeye alındı. Onay sonrası bilgilendirileceksiniz.",
+            description: data.isExistingUser 
+              ? "Mevcut hesabınıza sürücü başvurusu eklendi. Onay sonrası bilgilendirileceksiniz."
+              : "Sürücü başvurunuz incelemeye alındı. Onay sonrası bilgilendirileceksiniz.",
             variant: "success",
           });
           router.replace("/surucu");

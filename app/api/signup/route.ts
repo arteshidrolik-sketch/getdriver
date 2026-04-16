@@ -46,9 +46,54 @@ export async function POST(request: Request) {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { phone },
+      include: { driver: true },
     });
 
     if (existingUser) {
+      // Kullanıcı zaten var, sürücü başvurusu mu yapıyor?
+      if (role === "DRIVER") {
+        // Kullanıcı zaten sürücü mü?
+        if (existingUser.driver) {
+          return NextResponse.json(
+            { error: "Bu telefon numarası ile zaten sürücü başvurusu yapılmış" },
+            { status: 400 }
+          );
+        }
+        
+        // Kullanıcı var ama sürücü değil, sürücü kaydı ekle
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Şifreyi güncelle (eğer farklıysa)
+        if (existingUser.password !== hashedPassword) {
+          await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { password: hashedPassword },
+          });
+        }
+        
+        // Rolü DRIVER yap
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { role: "DRIVER" },
+        });
+        
+        // Sürücü kaydı oluştur
+        await prisma.driver.create({
+          data: {
+            userId: existingUser.id,
+            approvalStatus: "PENDING",
+          },
+        });
+        
+        return NextResponse.json({
+          success: true,
+          message: "Sürücü başvurusu başarılı",
+          userId: existingUser.id,
+          isExistingUser: true,
+        });
+      }
+      
+      // Normal kayıt (CUSTOMER) - zaten varsa hata ver
       return NextResponse.json(
         { error: "Bu telefon numarası zaten kayıtlı" },
         { status: 400 }
