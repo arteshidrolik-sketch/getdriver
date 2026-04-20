@@ -296,27 +296,17 @@ export default function DriverRequestsPage() {
                         <div className="space-y-2">
                           <Badge variant="default" className="bg-blue-100 text-blue-800">
                             <Clock className="h-3 w-3 mr-1" />
-                            Teklifiniz: {formatPrice(request.myPendingOffer.price)} TL
+                            Teklifiniz: {formatPrice(request.myPendingOffer.price)} TL - Müşteri onayı bekliyor
                           </Badge>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 flex-1"
-                              onClick={() => handleAcceptAutoOffer(request.id)}
-                              disabled={submitting}
-                            >
-                              Kabul Et
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1"
-                              onClick={() => handleRejectAutoOffer(request.id)}
-                              disabled={submitting}
-                            >
-                              Reddet
-                            </Button>
-                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-red-600 border-red-200 hover:bg-red-50"
+                            onClick={() => handleRejectAutoOffer(request.id)}
+                            disabled={submitting}
+                          >
+                            Teklifi Geri Çek
+                          </Button>
                         </div>
                       ) : request?.alreadyOffered ? (
                         <Badge variant="secondary">
