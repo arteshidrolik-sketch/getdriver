@@ -113,12 +113,17 @@ export default function RegisterPage() {
         if (result?.ok) {
           toast({
             title: "Kayıt Başarılı",
-            description: "Hoş geldiniz!",
+            description: "Yönlendiriliyorsunuz...",
             variant: "success",
           });
           setRegistered(true);
           setShowPermissions(true);
         } else {
+          toast({
+            title: "Hata",
+            description: "Giriş yapılamadı, lütfen giriş yapın",
+            variant: "destructive",
+          });
           router.push("/giris");
         }
       } else {
