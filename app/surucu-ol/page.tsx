@@ -15,7 +15,8 @@ import { PermissionRequest } from "@/components/permission-request";
 export default function DriverRegisterPage() {
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [licensePhoto, setLicensePhoto] = useState<File | null>(null);
@@ -26,8 +27,37 @@ export default function DriverRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
   const [registered, setRegistered] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const router = useRouter();
   const { toast } = useToast();
+
+  // Format phone number as user types: 0(5XX) XXX XX XX
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const limited = digits.slice(0, 11);
+    
+    if (limited.length <= 3) {
+      return limited;
+    } else if (limited.length <= 6) {
+      return `${limited.slice(0, 3)} ${limited.slice(3)}`;
+    } else if (limited.length <= 8) {
+      return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6)}`;
+    } else {
+      return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6, 8)} ${limited.slice(8)}`;
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setPhone(formatted);
+    
+    const digits = formatted.replace(/\D/g, "");
+    if (digits.length > 0 && digits.length < 10) {
+      setPhoneError("Telefon en az 10 haneli olmalı");
+    } else {
+      setPhoneError("");
+    }
+  };
 
   // Şifre validasyonu
   const passwordChecks = {
@@ -39,18 +69,19 @@ export default function DriverRegisterPage() {
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
   const goToStep2 = () => {
-    if (!phone || phone.replace(/\D/g, "").length < 10) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length !== 11 || !digits.startsWith("0")) {
       toast({
         title: "Hata",
-        description: "Geçerli bir telefon numarası girin",
+        description: "Geçerli bir telefon numarası girin (0 ile başlamalı, 11 haneli)",
         variant: "destructive",
       });
       return;
     }
-    if (!name.trim()) {
+    if (!firstName.trim() || !lastName.trim()) {
       toast({
         title: "Hata",
-        description: "Ad soyad zorunludur",
+        description: "Ad ve soyad zorunludur",
         variant: "destructive",
       });
       return;
@@ -137,7 +168,8 @@ export default function DriverRegisterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phone: phone.replace(/\D/g, ""),
-          name,
+          firstName,
+          lastName,
           password,
           role: "DRIVER",
         }),
@@ -262,26 +294,43 @@ export default function DriverRegisterPage() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="5XX XXX XX XX"
+                    placeholder="0(5XX) XXX XX XX"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={handlePhoneChange}
                     className="pl-10"
                   />
                 </div>
+                {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="name">Ad Soyad</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Adınız Soyadınız"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Ad</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="firstName"
+                      type="text"
+                      placeholder="Ad"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Soyad</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Soyad"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
               </div>
 

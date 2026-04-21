@@ -8,14 +8,26 @@ import bcrypt from "bcryptjs";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, name, password, role = "CUSTOMER" } = body;
+    const { phone, firstName, lastName, password, role = "CUSTOMER" } = body;
 
-    if (!phone || !name || !password) {
+    if (!phone || !firstName || !lastName || !password) {
       return NextResponse.json(
-        { error: "Telefon, isim ve şifre zorunludur" },
+        { error: "Telefon, ad, soyad ve şifre zorunludur" },
         { status: 400 }
       );
     }
+    
+    // Telefon validasyonu: 11 hane, 0 ile başlamalı
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length !== 11 || !phoneDigits.startsWith("0")) {
+      return NextResponse.json(
+        { error: "Telefon numarası 11 haneli olmalı ve 0 ile başlamalı" },
+        { status: 400 }
+      );
+    }
+    
+    // Full name
+    const fullName = `${firstName} ${lastName}`;
     
     // Güçlü şifre kontrolü (en az 8 karakter, 1 büyük harf, 1 küçük harf, 1 rakam)
     if (password.length < 8) {
@@ -105,7 +117,7 @@ export async function POST(request: Request) {
     const user = await prisma.user.create({
       data: {
         phone,
-        name,
+        name: fullName,
         password: hashedPassword,
         role: role === "DRIVER" ? "DRIVER" : "CUSTOMER",
         status: "ACTIVE",
