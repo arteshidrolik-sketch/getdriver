@@ -31,30 +31,12 @@ export default function DriverRegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Format phone number: 0(XXX) XXX XX XX
-  const formatPhone = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    const limited = digits.slice(0, 10); // 10 digits after the leading 0
-
-    if (limited.length === 0) return "0";
-    if (limited.length <= 3) return `0(${limited})`;
-    if (limited.length <= 6) return `0(${limited.slice(0, 3)}) ${limited.slice(3)}`;
-    if (limited.length <= 8) return `0(${limited.slice(0, 3)}) ${limited.slice(3, 6)} ${limited.slice(6)}`;
-    return `0(${limited.slice(0, 3)}) ${limited.slice(3, 6)} ${limited.slice(6, 8)} ${limited.slice(8)}`;
-  };
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "");
+    let value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    setPhone(value);
     
-    // Don't allow more than 10 digits after 0
-    if (digits.length > 10) return;
-    
-    const formatted = formatPhone(digits);
-    setPhone(formatted);
-    
-    const phoneDigits = formatted.replace(/\D/g, "");
-    if (phoneDigits.length > 0 && phoneDigits.length < 10) {
-      setPhoneError("Telefon 10 haneli olmalı");
+    if (value.length > 0 && value.length < 10) {
+      setPhoneError("Telefon 10 rakam olmalı");
     } else {
       setPhoneError("");
     }
@@ -70,11 +52,10 @@ export default function DriverRegisterPage() {
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
   const goToStep2 = () => {
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length !== 11) {
+    if (phone.length !== 10) {
       toast({
         title: "Hata",
-        description: "Geçerli bir telefon numarası girin (11 haneli)",
+        description: "Telefon numarası 10 rakam olmalı",
         variant: "destructive",
       });
       return;
@@ -168,7 +149,7 @@ export default function DriverRegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: phone.replace(/\D/g, ""),
+          phone: "0" + phone,
           firstName,
           lastName,
           password,
@@ -181,7 +162,7 @@ export default function DriverRegisterPage() {
         // Eğer mevcut kullanıcıysa, direkt giriş yap
         // Yeni kullanıcıysa, signup sonrası otomatik giriş yapılacak
         const loginResult = await signIn("credentials", {
-          phone: phone.replace(/\D/g, ""),
+          phone: "0" + phone,
           password,
           redirect: false,
         });
@@ -295,7 +276,7 @@ export default function DriverRegisterPage() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="0(5XX) XXX XX XX"
+                    placeholder="505XXXXXXXX"
                     value={phone}
                     onChange={handlePhoneChange}
                     className="pl-10"
