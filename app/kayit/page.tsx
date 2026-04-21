@@ -116,6 +116,7 @@ export default function RegisterPage() {
             description: "Yönlendiriliyorsunuz...",
             variant: "success",
           });
+          // Permissions sayfasini goster - her zaman
           setRegistered(true);
           setShowPermissions(true);
         } else {

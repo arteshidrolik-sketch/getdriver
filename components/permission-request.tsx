@@ -23,19 +23,19 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
 
   const [loading, setLoading] = useState(false);
   const [showDenied, setShowDenied] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [manuallyOpened, setManuallyOpened] = useState(false);
 
   const allGranted = permissions.location && permissions.camera && permissions.notifications;
 
-  // If all permissions already granted, complete immediately
+  // Eğer izinler zaten verilmişse, hemen tamamla
   useEffect(() => {
-    if (!checking && allGranted && !completed) {
-      setCompleted(true);
+    if (!checking && allGranted && !manuallyOpened) {
+      // İzinler zaten var, direkt tamamla
       if (onComplete) {
         onComplete(true);
       }
     }
-  }, [checking, allGranted, completed, onComplete]);
+  }, [checking, allGranted, manuallyOpened, onComplete]);
 
   const handleRequestAll = async () => {
     setLoading(true);
@@ -50,6 +50,7 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
     }
   };
 
+  // Yükleniyor
   if (checking) {
     return (
       <Card className="w-full max-w-md shadow-xl">
@@ -61,18 +62,19 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
     );
   }
 
-  // All permissions already granted - redirect immediately
-  if (allGranted) {
+  // İzinler zaten verilmiş - yönlendir
+  if (allGranted && !manuallyOpened) {
     return (
       <Card className="w-full max-w-md shadow-xl">
         <CardContent className="p-6 text-center">
-          <div className="h-8 w-8 border-2 border-green-600 border-t-transparent rounded-full mx-auto" style={{ animation: "spin 1s linear infinite" }} />
+          <div className="h-8 w-8 border-2 border-green-600 border-t-transparent rounded-full mx-auto animate-spin" />
           <p className="text-sm text-muted-foreground mt-3">Yönlendiriliyorsunuz...</p>
         </CardContent>
       </Card>
     );
   }
 
+  // İzin isteği sayfası
   return (
     <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="text-center pb-2">
