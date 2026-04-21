@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from "react";
 
 export interface PermissionsState {
   location: boolean;
@@ -16,7 +15,6 @@ export function usePermissions() {
     notifications: false,
   });
   const [checking, setChecking] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     checkPermissions();
@@ -26,26 +24,33 @@ export function usePermissions() {
     try {
       // Check location permission
       if (navigator.geolocation) {
-        const locationPerm = await navigator.permissions.query({ name: "geolocation" });
-        setPermissions(prev => ({ ...prev, location: locationPerm.state === "granted" }));
-        locationPerm.onchange = () => {
+        try {
+          const locationPerm = await navigator.permissions.query({ name: "geolocation" });
           setPermissions(prev => ({ ...prev, location: locationPerm.state === "granted" }));
-        };
+          locationPerm.onchange = () => {
+            setPermissions(prev => ({ ...prev, location: locationPerm.state === "granted" }));
+          };
+        } catch (e) {
+          console.log("Location permission check failed");
+        }
       }
 
       // Check camera permission
       if (navigator.mediaDevices) {
-        const cameraPerm = await navigator.permissions.query({ name: "camera" });
-        setPermissions(prev => ({ ...prev, camera: cameraPerm.state === "granted" }));
-        cameraPerm.onchange = () => {
+        try {
+          const cameraPerm = await navigator.permissions.query({ name: "camera" });
           setPermissions(prev => ({ ...prev, camera: cameraPerm.state === "granted" }));
-        };
+          cameraPerm.onchange = () => {
+            setPermissions(prev => ({ ...prev, camera: cameraPerm.state === "granted" }));
+          };
+        } catch (e) {
+          console.log("Camera permission check failed");
+        }
       }
 
       // Check notification permission
       if ("Notification" in window) {
-        const notifPerm = Notification.permission;
-        setPermissions(prev => ({ ...prev, notifications: notifPerm === "granted" }));
+        setPermissions(prev => ({ ...prev, notifications: Notification.permission === "granted" }));
       }
     } catch (error) {
       console.error("Permission check error:", error);
@@ -54,13 +59,8 @@ export function usePermissions() {
     }
   };
 
-  const requestLocation = async (): Promise<boolean> => {
+  const requestLocation = useCallback(async (): Promise<boolean> => {
     if (!navigator.geolocation) {
-      toast({
-        title: "Hata",
-        description: "Tarayıcınız konum özelliğini desteklemiyor",
-        variant: "destructive",
-      });
       return false;
     }
 
@@ -75,65 +75,30 @@ export function usePermissions() {
       
       setPermissions(prev => ({ ...prev, location: true }));
       return true;
-    } catch (error: any) {
-      if (error.code === 1) {
-        toast({
-          title: "Konum İzni Gerekli",
-          description: "Yolculuk takibi için konum izni vermeniz gerekiyor",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Hata",
-          description: "Konum alınamadı",
-          variant: "destructive",
-        });
-      }
+    } catch (error) {
+      console.log("Location permission denied");
       return false;
     }
-  };
+  }, []);
 
-  const requestCamera = async (): Promise<boolean> => {
+  const requestCamera = useCallback(async (): Promise<boolean> => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast({
-        title: "Hata",
-        description: "Tarayıcınız kamera özelliğini desteklemiyor",
-        variant: "destructive",
-      });
       return false;
     }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      // Stop the stream immediately, we just needed permission
       stream.getTracks().forEach(track => track.stop());
       setPermissions(prev => ({ ...prev, camera: true }));
       return true;
-    } catch (error: any) {
-      if (error.name === "NotAllowedError") {
-        toast({
-          title: "Kamera İzni Gerekli",
-          description: "Ehliyet ve kimlik fotoğrafı için kamera izni vermeniz gerekiyor",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Hata",
-          description: "Kamera kullanılamadı",
-          variant: "destructive",
-        });
-      }
+    } catch (error) {
+      console.log("Camera permission denied");
       return false;
     }
-  };
+  }, []);
 
-  const requestNotifications = async (): Promise<boolean> => {
+  const requestNotifications = useCallback(async (): Promise<boolean> => {
     if (!("Notification" in window)) {
-      toast({
-        title: "Hata",
-        description: "Tarayıcınız bildirim özelliğini desteklemiyor",
-        variant: "destructive",
-      });
       return false;
     }
 
@@ -142,25 +107,15 @@ export function usePermissions() {
       if (permission === "granted") {
         setPermissions(prev => ({ ...prev, notifications: true }));
         return true;
-      } else {
-        toast({
-          title: "Bildirim İzni Gerekli",
-          description: "Yeni teklifler ve yolculuk güncellemeleri için bildirim izni verin",
-          variant: "destructive",
-        });
-        return false;
       }
+      return false;
     } catch (error) {
-      toast({
-        title: "Hata",
-        description: "Bildirim izni alınamadı",
-        variant: "destructive",
-      });
+      console.log("Notification permission denied");
       return false;
     }
-  };
+  }, []);
 
-  const requestAllPermissions = async (): Promise<boolean> => {
+  const requestAllPermissions = useCallback(async (): Promise<boolean> => {
     setChecking(true);
     try {
       const [locationResult, cameraResult, notifResult] = await Promise.all([
@@ -169,21 +124,11 @@ export function usePermissions() {
         requestNotifications(),
       ]);
 
-      const allGranted = locationResult && cameraResult && notifResult;
-
-      if (allGranted) {
-        toast({
-          title: "Tüm İzinler Verildi",
-          description: "Uygulamayı kullanmaya başlayabilirsiniz",
-          variant: "success",
-        });
-      }
-
-      return allGranted;
+      return locationResult && cameraResult && notifResult;
     } finally {
       setChecking(false);
     }
-  };
+  }, [requestLocation, requestCamera, requestNotifications]);
 
   return {
     permissions,
