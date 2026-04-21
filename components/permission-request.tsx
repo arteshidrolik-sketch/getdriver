@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { MapPin, Camera, Bell, X, Check } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MapPin, Camera, Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { usePermissions, PermissionsState } from "@/hooks/use-permissions";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface PermissionRequestProps {
   onComplete?: (allGranted: boolean) => void;
@@ -23,8 +23,19 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
 
   const [loading, setLoading] = useState(false);
   const [showDenied, setShowDenied] = useState(false);
+  const [completed, setCompleted] = useState(false);
 
   const allGranted = permissions.location && permissions.camera && permissions.notifications;
+
+  // If all permissions already granted, complete immediately
+  useEffect(() => {
+    if (!checking && allGranted && !completed) {
+      setCompleted(true);
+      if (onComplete) {
+        onComplete(true);
+      }
+    }
+  }, [checking, allGranted, completed, onComplete]);
 
   const handleRequestAll = async () => {
     setLoading(true);
@@ -50,8 +61,16 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
     );
   }
 
+  // All permissions already granted - redirect immediately
   if (allGranted) {
-    return null; // All permissions already granted
+    return (
+      <Card className="w-full max-w-md shadow-xl">
+        <CardContent className="p-6 text-center">
+          <div className="h-8 w-8 border-2 border-green-600 border-t-transparent rounded-full mx-auto" style={{ animation: "spin 1s linear infinite" }} />
+          <p className="text-sm text-muted-foreground mt-3">Yönlendiriliyorsunuz...</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -76,9 +95,7 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
           <div className="flex-1">
             <p className="font-medium text-sm">Konum</p>
             <p className="text-xs text-muted-foreground">
-              {permissions.location
-                ? "Konum izni verildi"
-                : "Yolculuk takibi ve sürücü bulma için gerekli"}
+              {permissions.location ? "Konum izni verildi" : "Yolculuk takibi için gerekli"}
             </p>
           </div>
           {!permissions.location && (
@@ -100,9 +117,7 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
           <div className="flex-1">
             <p className="font-medium text-sm">Kamera</p>
             <p className="text-xs text-muted-foreground">
-              {permissions.camera
-                ? "Kamera izni verildi"
-                : "Ehliyet ve kimlik fotoğrafı için gerekli"}
+              {permissions.camera ? "Kamera izni verildi" : "Kimlik için gerekli"}
             </p>
           </div>
           {!permissions.camera && (
@@ -124,9 +139,7 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
           <div className="flex-1">
             <p className="font-medium text-sm">Bildirimler</p>
             <p className="text-xs text-muted-foreground">
-              {permissions.notifications
-                ? "Bildirim izni verildi"
-                : "Yeni teklifler için gerekli"}
+              {permissions.notifications ? "Bildirim izni verildi" : "Yeni teklifler için gerekli"}
             </p>
           </div>
           {!permissions.notifications && (
@@ -139,7 +152,7 @@ export function PermissionRequest({ onComplete, showSkip = false }: PermissionRe
         {/* Status Message */}
         {showDenied && !allGranted && (
           <div className="text-center text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-            Bazı izinler reddedildi. İzin vermezseniz uygulama bazı özellikleri kullanamaz.
+            Bazı izinler reddedildi. İzin vermeseniz de devam edebilirsiniz.
           </div>
         )}
 
