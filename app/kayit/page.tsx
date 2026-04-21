@@ -149,7 +149,7 @@ export default function RegisterPage() {
   };
 
   // Show permission request after successful registration
-  if (showPermissions && registered) {
+  if (registered) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
         <PermissionRequest onComplete={handlePermissionsComplete} showSkip />
