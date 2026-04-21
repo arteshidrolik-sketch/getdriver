@@ -26,34 +26,30 @@ export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  // Format phone number as user types: 0(5XX) XXX XX XX
+  // Format phone number: 0(XXX) XXX XX XX
   const formatPhone = (value: string) => {
-    // Remove all non-digits
     const digits = value.replace(/\D/g, "");
-    
-    // Limit to 11 digits
-    const limited = digits.slice(0, 11);
-    
-    // Format: 0(5XX) XXX XX XX
-    if (limited.length <= 3) {
-      return limited;
-    } else if (limited.length <= 6) {
-      return `${limited.slice(0, 3)} ${limited.slice(3)}`;
-    } else if (limited.length <= 8) {
-      return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6)}`;
-    } else {
-      return `${limited.slice(0, 3)} ${limited.slice(3, 6)} ${limited.slice(6, 8)} ${limited.slice(8)}`;
-    }
+    const limited = digits.slice(0, 10); // 10 digits after the leading 0
+
+    if (limited.length === 0) return "0";
+    if (limited.length <= 3) return `0(${limited})`;
+    if (limited.length <= 6) return `0(${limited.slice(0, 3)}) ${limited.slice(3)}`;
+    if (limited.length <= 8) return `0(${limited.slice(0, 3)}) ${limited.slice(3, 6)} ${limited.slice(6)}`;
+    return `0(${limited.slice(0, 3)}) ${limited.slice(3, 6)} ${limited.slice(6, 8)} ${limited.slice(8)}`;
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
+    const digits = e.target.value.replace(/\D/g, "");
+    
+    // Don't allow more than 10 digits after 0
+    if (digits.length > 10) return;
+    
+    const formatted = formatPhone(digits);
     setPhone(formatted);
     
-    // Validate
-    const digits = formatted.replace(/\D/g, "");
+    // Validate - need at least 10 digits total (including the 0)
     if (digits.length > 0 && digits.length < 10) {
-      setPhoneError("Telefon en az 10 haneli olmalı");
+      setPhoneError("Telefon 10 haneli olmalı");
     } else {
       setPhoneError("");
     }
@@ -81,10 +77,11 @@ export default function RegisterPage() {
     }
 
     const digits = phone.replace(/\D/g, "");
-    if (digits.length !== 11 || !digits.startsWith("0")) {
+    // digits should be 11 total (0 + 10 digits)
+    if (digits.length !== 11) {
       toast({
         title: "Hata",
-        description: "Geçerli bir telefon numarası girin (0 ile başlamalı, 11 haneli)",
+        description: "Geçerli bir telefon numarası girin (11 haneli)",
         variant: "destructive",
       });
       return;
@@ -219,7 +216,7 @@ export default function RegisterPage() {
                 />
               </div>
               {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
-              <p className="text-xs text-muted-foreground">Örnek: 0505 715 73 53</p>
+              <p className="text-xs text-muted-foreground">Örnek: 0(505) 715 73 53</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
