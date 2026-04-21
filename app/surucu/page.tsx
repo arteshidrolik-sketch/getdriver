@@ -22,7 +22,7 @@ export default async function DriverHomePage() {
             include: { customer: true, vehicle: true },
           },
         },
-        take: 1,
+        take: 10,
       },
     },
   });
