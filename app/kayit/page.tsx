@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { PermissionRequest } from "@/components/permission-request";
 
 export default function RegisterPage() {
   const [phone, setPhone] = useState("");
@@ -18,6 +19,8 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -97,7 +100,8 @@ export default function RegisterPage() {
             description: "Hoş geldiniz!",
             variant: "success",
           });
-          router.replace("/musteri");
+          setRegistered(true);
+          setShowPermissions(true);
         } else {
           router.push("/giris");
         }
@@ -118,6 +122,19 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const handlePermissionsComplete = (allGranted: boolean) => {
+    router.replace("/musteri");
+  };
+
+  // Show permission request after successful registration
+  if (showPermissions && registered) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
+        <PermissionRequest onComplete={handlePermissionsComplete} showSkip />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">

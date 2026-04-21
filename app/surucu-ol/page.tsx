@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { PermissionRequest } from "@/components/permission-request";
 
 export default function DriverRegisterPage() {
   const [step, setStep] = useState(1);
@@ -23,6 +24,8 @@ export default function DriverRegisterPage() {
   const [criminalDeclare, setCriminalDeclare] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -173,7 +176,9 @@ export default function DriverRegisterPage() {
               : "Sürücü başvurunuz incelemeye alındı. Onay sonrası bilgilendirileceksiniz.",
             variant: "success",
           });
-          router.replace("/surucu");
+          
+          setRegistered(true);
+          setShowPermissions(true);
         }
       } else {
         toast({
@@ -192,6 +197,16 @@ export default function DriverRegisterPage() {
       setLoading(false);
     }
   };
+
+  // Show permission request after successful registration
+  if (showPermissions && registered) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
+        <PermissionRequest onComplete={() => router.replace("/surucu")} showSkip />
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
