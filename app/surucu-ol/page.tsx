@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { PermissionRequest } from "@/components/permission-request";
 
 export default function DriverRegisterPage() {
   const [step, setStep] = useState(1);
@@ -25,21 +24,12 @@ export default function DriverRegisterPage() {
   const [criminalDeclare, setCriminalDeclare] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPermissions, setShowPermissions] = useState(false);
-  const [registered, setRegistered] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
   const router = useRouter();
   const { toast } = useToast();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
     setPhone(value);
-    
-    if (value.length > 0 && value.length < 10) {
-      setPhoneError("Telefon 10 rakam olmalı");
-    } else {
-      setPhoneError("");
-    }
   };
 
   // Şifre validasyonu
@@ -191,8 +181,7 @@ export default function DriverRegisterPage() {
             variant: "success",
           });
           
-          setRegistered(true);
-          setShowPermissions(true);
+          router.replace("/surucu");
         }
       } else {
         toast({
@@ -211,15 +200,6 @@ export default function DriverRegisterPage() {
       setLoading(false);
     }
   };
-
-  // Show permission request after successful registration
-  if (showPermissions && registered) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
-        <PermissionRequest onComplete={() => router.replace("/surucu")} showSkip />
-      </div>
-    );
-  }
 
 
   return (
@@ -282,7 +262,6 @@ export default function DriverRegisterPage() {
                     className="pl-10"
                   />
                 </div>
-                {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

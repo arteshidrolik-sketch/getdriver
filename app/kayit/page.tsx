@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { PermissionRequest } from "@/components/permission-request";
 
 export default function RegisterPage() {
   const [phone, setPhone] = useState("");
@@ -20,25 +19,14 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showPermissions, setShowPermissions] = useState(false);
-  const [registered, setRegistered] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
   const router = useRouter();
   const { toast } = useToast();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Sadece rakam kabul et, 10 haneyi geçme
-    let value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
     setPhone(value);
-    
-    if (value.length > 0 && value.length < 10) {
-      setPhoneError("Telefon 10 rakam olmalı");
-    } else {
-      setPhoneError("");
-    }
   };
 
-  // Şifre validasyonu
   const passwordChecks = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -59,8 +47,7 @@ export default function RegisterPage() {
       return;
     }
 
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length !== 10) {
+    if (phone.length !== 10) {
       toast({
         title: "Hata",
         description: "Telefon numarası 10 rakam olmalı",
@@ -103,7 +90,6 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Auto login
         const result = await signIn("credentials", {
           phone: "0" + phone,
           password,
@@ -113,18 +99,11 @@ export default function RegisterPage() {
         if (result?.ok) {
           toast({
             title: "Kayıt Başarılı",
-            description: "Yönlendiriliyorsunuz...",
+            description: "Hoş geldiniz!",
             variant: "success",
           });
-          // Permissions sayfasini goster - her zaman
-          setRegistered(true);
-          setShowPermissions(true);
+          router.replace("/musteri");
         } else {
-          toast({
-            title: "Hata",
-            description: "Giriş yapılamadı, lütfen giriş yapın",
-            variant: "destructive",
-          });
           router.push("/giris");
         }
       } else {
@@ -144,19 +123,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
-  const handlePermissionsComplete = (allGranted: boolean) => {
-    router.replace("/musteri");
-  };
-
-  // Show permission request after successful registration
-  if (registered) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
-        <PermissionRequest onComplete={handlePermissionsComplete} showSkip />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white dark:from-gray-900 dark:to-gray-950 flex items-center justify-center p-4">
@@ -203,7 +169,6 @@ export default function RegisterPage() {
                   required
                 />
               </div>
-              {phoneError && <p className="text-xs text-red-500">{phoneError}</p>}
               <p className="text-xs text-muted-foreground">10 rakam girin</p>
             </div>
 
@@ -261,7 +226,6 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {/* Şifre gereksinimleri */}
               {password.length > 0 && (
                 <div className="text-xs space-y-1 mt-2 p-2 bg-gray-50 dark:bg-gray-900 rounded">
                   <div className={`flex items-center gap-1 ${passwordChecks.length ? "text-green-600" : "text-red-500"}`}>
@@ -308,7 +272,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700"
-              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || !!phoneError}
+              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || phone.length !== 10}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
