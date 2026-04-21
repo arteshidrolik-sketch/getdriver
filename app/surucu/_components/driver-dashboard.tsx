@@ -45,11 +45,13 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
   const isPending = driver?.approvalStatus === "PENDING";
   const isRejected = driver?.approvalStatus === "REJECTED";
   const isApproved = driver?.approvalStatus === "APPROVED";
-  const activeRide = driver?.rides?.[0];
+  const activeRides = driver?.rides?.filter((r: any) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED') || [];
+
+  const hasActiveRides = activeRides.length > 0;
 
   // Online olduğunda yakındaki talepleri getir
   useEffect(() => {
-    if (isOnline && !activeRide) {
+    if (isOnline && !hasActiveRides) {
       fetchNearbyRequests();
       // Her 30 saniyede bir yenile
       const interval = setInterval(fetchNearbyRequests, 30000);
@@ -57,7 +59,7 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
     } else {
       setNearbyRequests([]);
     }
-  }, [isOnline, activeRide]);
+  }, [isOnline, hasActiveRides]);
 
   const fetchNearbyRequests = async () => {
     if (!isOnline) return;
@@ -208,20 +210,20 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
                 <Switch
                   checked={isOnline}
                   onCheckedChange={toggleOnline}
-                  disabled={loading || !!activeRide}
+                  disabled={loading || hasActiveRides}
                   className="data-[state=checked]:bg-green-600"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Active Ride */}
-          {activeRide && (
-            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+          {/* Active Rides */}
+          {activeRides.map((activeRide: any) => (
+            <Card key={activeRide.id} className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Navigation className="h-5 w-5 text-blue-600 animate-pulse" />
-                  Aktif Sürüş
+                  Aktif Sürüş - {activeRide?.request?.customer?.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -247,7 +249,7 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
                 </div>
               </CardContent>
             </Card>
-          )}
+          ))}
 
           {/* Today's Stats */}
           <div className="grid grid-cols-2 gap-4">
@@ -306,7 +308,7 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
           </Card>
 
           {/* Nearby Requests - Online ve aktif sürüş yoksa göster */}
-          {isOnline && !activeRide && (
+          {isOnline && !hasActiveRides && (
             <>
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -387,7 +389,7 @@ export function DriverDashboard({ driver, todayRides, todayEarnings }: DriverDas
           )}
 
           {/* Offline uyarısı */}
-          {!isOnline && isApproved && !activeRide && (
+          {!isOnline && isApproved && !hasActiveRides && (
             <Card className="bg-gray-50 dark:bg-gray-900/50 border-dashed">
               <CardContent className="p-6 text-center">
                 <Power className="h-12 w-12 mx-auto text-gray-400 mb-3" />
