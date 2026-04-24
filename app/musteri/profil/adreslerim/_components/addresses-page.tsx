@@ -172,11 +172,11 @@ export function AddressesPage({ addresses: initialAddresses }: AddressesPageProp
       async (position) => {
         const { latitude, longitude } = position.coords;
         
+      // Reverse geocode using backend API
         try {
-          const w = window as any;
-          const geocoder = new w.google.maps.Geocoder();
-          const response = await geocoder.geocode({ location: { lat: latitude, lng: longitude } });
-          const foundAddress = response.results[0]?.formatted_address || "Mevcut Konum";
+          const response = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
+          const data = await response.json();
+          const foundAddress = data.address || "Mevcut Konum";
           
           setLat(latitude);
           setLng(longitude);

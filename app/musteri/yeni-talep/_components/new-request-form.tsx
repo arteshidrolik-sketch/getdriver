@@ -79,12 +79,11 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
       async (position) => {
         const { latitude, longitude } = position.coords;
         
-        // Reverse geocode to get address
+        // Reverse geocode using backend API
         try {
-          const w = window as any;
-          const geocoder = new w.google.maps.Geocoder();
-          const response = await geocoder.geocode({ location: { lat: latitude, lng: longitude } });
-          const address = response.results[0]?.formatted_address || "Mevcut Konum";
+          const response = await fetch(`/api/geocode/reverse?lat=${latitude}&lng=${longitude}`);
+          const data = await response.json();
+          const address = data.address || "Mevcut Konum";
           
           setPickup({ lat: latitude, lng: longitude, address });
           setPickupSearch(address);
