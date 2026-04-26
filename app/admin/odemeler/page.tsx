@@ -18,10 +18,6 @@ export default async function PaymentsPage() {
       _sum: { amount: true },
       where: { status: "COMPLETED" },
     }),
-    prisma.ride.aggregate({
-      _sum: { price: true, platformFee: true },
-      where: { status: "COMPLETED" },
-    }),
   ]);
 
   const stats = {
