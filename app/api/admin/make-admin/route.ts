@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Telefon gerekli" }, { status: 400 });
     }
 
-    // Normalize phone - add 0 if not present
+    // Normalize phone - 11 digits with 0
     const phoneDigits = phone.replace(/\D/g, "");
     const normalizedPhone = phoneDigits.startsWith("0") ? phoneDigits : `0${phoneDigits}`;
     

@@ -23,7 +23,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    const value = e.target.value.replace(/\D/g, "").slice(0, 11);
     setPhone(value);
   };
 
@@ -47,10 +47,10 @@ export default function RegisterPage() {
       return;
     }
 
-    if (phone.length !== 10) {
+    if (phone.length !== 11) {
       toast({
         title: "Hata",
-        description: "Telefon numarası 10 rakam olmalı",
+        description: "Telefon numarası 11 rakam olmalı",
         variant: "destructive",
       });
       return;
@@ -169,7 +169,7 @@ export default function RegisterPage() {
                   required
                 />
               </div>
-              <p className="text-xs text-muted-foreground">10 rakam girin</p>
+              <p className="text-xs text-muted-foreground">11 rakam girin</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -272,7 +272,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700"
-              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || phone.length !== 10}
+              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || phone.length !== 11}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

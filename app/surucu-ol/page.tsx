@@ -28,7 +28,7 @@ export default function DriverRegisterPage() {
   const { toast } = useToast();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+    const value = e.target.value.replace(/\D/g, "").slice(0, 11);
     setPhone(value);
   };
 
@@ -42,7 +42,7 @@ export default function DriverRegisterPage() {
   const isPasswordValid = Object.values(passwordChecks).every(Boolean);
 
   const goToStep2 = () => {
-    if (phone.length !== 10) {
+    if (phone.length !== 11) {
       toast({
         title: "Hata",
         description: "Telefon numarası 10 rakam olmalı",
