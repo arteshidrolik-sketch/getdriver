@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { Shield, LayoutDashboard, Users, Car, ClipboardList, AlertTriangle, CreditCard, Settings, LogOut, Menu, X, UserCheck } from "lucide-react";
+import { Shield, LayoutDashboard, Users, Car, ClipboardList, AlertTriangle, CreditCard, Settings, LogOut, Menu, X, UserCheck, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const navItems = [
   { href: "/admin/surusler", label: "Sürüşler", icon: ClipboardList },
   { href: "/admin/uyusmazliklar", label: "Uyuşmazlıklar", icon: AlertTriangle },
   { href: "/admin/odemeler", label: "Ödemeler", icon: CreditCard },
+  { href: "/admin/analitik", label: "Analitik", icon: TrendingUp },
   { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings },
 ];
 
