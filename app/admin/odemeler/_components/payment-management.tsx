@@ -15,8 +15,8 @@ interface Payment {
   status: string;
   type: string;
   createdAt: string;
-  user: { name: string; phone: string };
-  ride: { id: string; price: number };
+  user: { name: string | null; phone: string | null } | null;
+  ride: { id: string; price: number } | null;
 }
 
 interface PaymentManagementProps {
