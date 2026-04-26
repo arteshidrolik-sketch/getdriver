@@ -15,11 +15,15 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         const identifier = credentials?.phone || credentials?.email;
+        // Telefon numarasina 0 ekle (giris icin)
+        const phoneWithZero = identifier?.startsWith("0") ? identifier : `0${identifier}`;
+        
         if (!identifier || !credentials?.password) {
           throw new Error("Telefon/E-posta ve şifre gerekli");
         }
+        
         let user = await prisma.user.findUnique({
-          where: { phone: identifier },
+          where: { phone: phoneWithZero },
           include: { driver: true },
         });
         if (!user && identifier.includes("@")) {

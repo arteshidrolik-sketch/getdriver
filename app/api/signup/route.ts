@@ -17,14 +17,17 @@ export async function POST(request: Request) {
       );
     }
     
-    // Telefon validasyonu: 11 hane, 0 ile başlamalı
+    // Telefon validasyonu: 10 hane (0sız)
     const phoneDigits = phone.replace(/\D/g, "");
-    if (phoneDigits.length !== 11 || !phoneDigits.startsWith("0")) {
+    if (phoneDigits.length !== 10) {
       return NextResponse.json(
-        { error: "Telefon numarası 11 haneli olmalı ve 0 ile başlamalı" },
+        { error: "Telefon numarası 10 rakam olmalı" },
         { status: 400 }
       );
     }
+    
+    // Telefonu 0 olmadan kaydet (standart format)
+    const normalizedPhone = phoneDigits;
     
     // Full name
     const fullName = `${firstName} ${lastName}`;
@@ -116,7 +119,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.create({
       data: {
-        phone,
+        phone: normalizedPhone,
         name: fullName,
         password: hashedPassword,
         role: role === "DRIVER" ? "DRIVER" : "CUSTOMER",

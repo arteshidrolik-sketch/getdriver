@@ -17,8 +17,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Telefon gerekli" }, { status: 400 });
     }
 
+    // Normalize phone - add 0 if not present
+    const phoneDigits = phone.replace(/\D/g, "");
+    const normalizedPhone = phoneDigits.startsWith("0") ? phoneDigits : `0${phoneDigits}`;
+    
     const user = await prisma.user.findFirst({
-      where: { phone },
+      where: { phone: normalizedPhone },
     });
 
     if (!user) {
