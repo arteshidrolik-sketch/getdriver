@@ -29,7 +29,7 @@ export function SettingsManagement() {
       toast({
         title: "Ayarlar Kaydedildi",
         description: "Platform ayarları güncellendi",
-        variant: "success",
+        variant: "default",
       });
     } catch (error) {
       toast({

@@ -1,33 +1,42 @@
-import { prisma } from "@/lib/db";
 import { PaymentManagement } from "./_components/payment-management";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaymentsPage() {
-  const [payments, revenueSummary] = await Promise.all([
-    prisma.payment.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      include: {
-        user: { select: { name: true, phone: true } },
-        ride: { select: { id: true, price: true } },
-      },
-    }),
-    prisma.payment.aggregate({
-      _count: true,
-      _sum: { amount: true },
-      where: { status: "COMPLETED" },
-    }),
-  ]);
-
-  const stats = {
-    totalPayments: revenueSummary._count || 0,
-    totalAmount: revenueSummary._sum.amount || 0,
+  let payments: any[] = [];
+  let stats = {
+    totalPayments: 0,
+    totalAmount: 0,
   };
+
+  try {
+    const { prisma } = await import("@/lib/db");
+    const [dbPayments, revenueSummary] = await Promise.all([
+      prisma.payment.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          ride: { select: { id: true, price: true } },
+        },
+      }),
+      prisma.payment.aggregate({
+        _count: true,
+        _sum: { amount: true },
+        where: { status: "COMPLETED" },
+      }),
+    ]);
+    payments = JSON.parse(JSON.stringify(dbPayments));
+    stats = {
+      totalPayments: revenueSummary._count || 0,
+      totalAmount: revenueSummary._sum.amount || 0,
+    };
+  } catch (e) {
+    // Database not available
+  }
 
   return (
     <PaymentManagement
-      payments={JSON.parse(JSON.stringify(payments))}
+      payments={payments}
       stats={stats}
     />
   );

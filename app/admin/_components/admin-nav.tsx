@@ -18,7 +18,7 @@ const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/surucu-basvurulari", label: "Sürücü Başvuruları", icon: UserCheck },
   { href: "/admin/kullanicilar", label: "Kullanıcılar", icon: Users },
-  { href: "/admin/surucueler", label: "Sürücüler", icon: Car },
+  { href: "/admin/suruculer", label: "Sürücüler", icon: Car },
   { href: "/admin/surusler", label: "Sürüşler", icon: ClipboardList },
   { href: "/admin/uyusmazliklar", label: "Uyuşmazlıklar", icon: AlertTriangle },
   { href: "/admin/odemeler", label: "Ödemeler", icon: CreditCard },
