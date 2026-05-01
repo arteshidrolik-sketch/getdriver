@@ -19,15 +19,19 @@ export async function POST(request: Request) {
     
     // Telefon validasyonu: 11 hane, 0 ile başlamalı
     const phoneDigits = phone.replace(/\D/g, "");
-    if (phoneDigits.length !== 11 || !phoneDigits.startsWith("0")) {
+    
+    // Otomatik 0 ekle (eğer yoksa)
+    let normalizedPhone = phoneDigits;
+    if (normalizedPhone.length === 10 && !normalizedPhone.startsWith("0")) {
+      normalizedPhone = "0" + normalizedPhone;
+    }
+    
+    if (normalizedPhone.length !== 11 || !normalizedPhone.startsWith("0")) {
       return NextResponse.json(
         { error: "Telefon numarası 11 haneli olmalı ve 0 ile başlamalı" },
         { status: 400 }
       );
     }
-    
-    // Telefonu Olduğu Gibi Kaydet (0 dahil)
-    const normalizedPhone = phoneDigits;
     
     // Full name
     const fullName = `${firstName} ${lastName}`;
@@ -60,7 +64,7 @@ export async function POST(request: Request) {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { phone },
+      where: { phone: normalizedPhone },
       include: { driver: true },
     });
 

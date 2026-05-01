@@ -24,8 +24,8 @@ export default function RegisterPage() {
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "").slice(0, 11);
-    // Otomatik 0 prefix ekle
-    if (value.length > 0 && !value.startsWith("0")) {
+    // Otomatik 0 prefix ekle (sadece 10 haneliyse)
+    if (value.length === 10 && !value.startsWith("0")) {
       value = "0" + value;
     }
     setPhone(value);
