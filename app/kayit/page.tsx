@@ -23,7 +23,11 @@ export default function RegisterPage() {
   const { toast } = useToast();
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 11);
+    let value = e.target.value.replace(/\D/g, "").slice(0, 11);
+    // Otomatik 0 prefix ekle
+    if (value.length > 0 && !value.startsWith("0")) {
+      value = "0" + value;
+    }
     setPhone(value);
   };
 
@@ -80,7 +84,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: "0" + phone,
+          phone,
           firstName,
           lastName,
           password,
@@ -91,7 +95,7 @@ export default function RegisterPage() {
 
       if (data.success) {
         const result = await signIn("credentials", {
-          phone: "0" + phone,
+          phone,
           password,
           redirect: false,
         });
@@ -162,7 +166,7 @@ export default function RegisterPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="505XXXXXXXX"
+                  placeholder="05XXXXXXXXX"
                   value={phone}
                   onChange={handlePhoneChange}
                   className="pl-10"
