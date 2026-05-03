@@ -166,3 +166,4 @@ getdriver/
 - **Depolama:** AWS S3
 - **Bildirimler:** Web Push (VAPID)
 - **SMS:** İleti Merkezi (OTP)
+# Trigger deploy
