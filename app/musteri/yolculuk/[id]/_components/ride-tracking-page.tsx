@@ -53,9 +53,9 @@ interface DriverLocation {
 const RIDE_STEPS = [
   { status: "PENDING_PICKUP", label: "Sürücü Yolda", icon: Navigation },
   { status: "DRIVER_ARRIVED", label: "Sürücü Geldi", icon: MapPin },
-  { status: "PHOTO_BEFORE", label: "Başlangıç Foto", icon: Camera },
+  { status: "PHOTOS_BEFORE", label: "Başlangıç Foto", icon: Camera },
   { status: "IN_PROGRESS", label: "Yolculuk", icon: Car },
-  { status: "PHOTO_AFTER", label: "Bitiş Foto", icon: Camera },
+  { status: "PHOTOS_AFTER", label: "Bitiş Foto", icon: Camera },
   { status: "COMPLETED", label: "Tamamlandı", icon: CheckCircle },
 ];
 

@@ -43,10 +43,10 @@ interface DriverRidePageProps {
 
 const STATUS_FLOW = [
   { status: "PENDING_PICKUP", label: "Alış Noktasına Git", nextStatus: "DRIVER_ARRIVED", nextLabel: "Vardım" },
-  { status: "DRIVER_ARRIVED", label: "Müşteri Bekleniyor", nextStatus: "PHOTO_BEFORE", nextLabel: "Foto Çek" },
-  { status: "PHOTO_BEFORE", label: "Başlangıç Fotoğrafı", nextStatus: "IN_PROGRESS", nextLabel: "Yola Çık" },
-  { status: "IN_PROGRESS", label: "Yolculuk Devam Ediyor", nextStatus: "PHOTO_AFTER", nextLabel: "Bitiş Foto" },
-  { status: "PHOTO_AFTER", label: "Bitiş Fotoğrafı", nextStatus: "COMPLETED", nextLabel: "Tamamla" },
+  { status: "DRIVER_ARRIVED", label: "Müşteri Bekleniyor", nextStatus: "PHOTOS_BEFORE", nextLabel: "Foto Çek" },
+  { status: "PHOTOS_BEFORE", label: "Başlangıç Fotoğrafı", nextStatus: "IN_PROGRESS", nextLabel: "Yola Çık" },
+  { status: "IN_PROGRESS", label: "Yolculuk Devam Ediyor", nextStatus: "PHOTOS_AFTER", nextLabel: "Bitiş Foto" },
+  { status: "PHOTOS_AFTER", label: "Bitiş Fotoğrafı", nextStatus: "COMPLETED", nextLabel: "Tamamla" },
   { status: "COMPLETED", label: "Tamamlandı", nextStatus: null, nextLabel: null },
 ];
 
@@ -71,7 +71,7 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   const currentStepIndex = STATUS_FLOW.findIndex(s => s.status === ride.status);
   const progress = ((currentStepIndex + 1) / STATUS_FLOW.length) * 100;
 
-  const isPhotoStep = ride.status === "PHOTO_BEFORE" || ride.status === "PHOTO_AFTER";
+  const isPhotoStep = ride.status === "PHOTOS_BEFORE" || ride.status === "PHOTOS_AFTER";
   const isCompleted = ride.status === "COMPLETED";
   const isCancelled = ride.status === "CANCELLED";
   const isActive = !isCompleted && !isCancelled;
@@ -170,7 +170,7 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
       const body: any = { status: newStatus };
       if (photoUrl) {
         body.photoUrl = photoUrl;
-        body.photoType = ride.status === "PHOTO_BEFORE" ? "BEFORE" : "AFTER";
+        body.photoType = ride.status === "PHOTOS_BEFORE" ? "BEFORE" : "AFTER";
       }
 
       const res = await fetch(`/api/rides/${ride.id}`, {
@@ -578,10 +578,10 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {ride.status === "PHOTO_BEFORE" ? "Başlangıç Fotoğrafı" : "Bitiş Fotoğrafı"}
+              {ride.status === "PHOTOS_BEFORE" ? "Başlangıç Fotoğrafı" : "Bitiş Fotoğrafı"}
             </DialogTitle>
             <DialogDescription>
-              Aracın {ride.status === "PHOTO_BEFORE" ? "teslim alma" : "teslim etme"} durumunu fotoğraflayın.
+              Aracın {ride.status === "PHOTOS_BEFORE" ? "teslim alma" : "teslim etme"} durumunu fotoğraflayın.
             </DialogDescription>
           </DialogHeader>
 
