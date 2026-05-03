@@ -2,7 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "app.vercel.getdriver_apc6hvu0x_arteshidrolik_sketchs_projects.twa",
-    "sha256_cert_fingerprints": ["6B:81:5F:97:63:C1:54:96:CA:9E:CB:D1:CB:20:D3:21:79:5A:2D:D4:00:6A:0C:CF:B7:DC:B6:B8:9C:2B:5A:26"]
+    "package_name": "com.getdriver.app",
+    "sha256_cert_fingerprints": ["AE:80:61:B6:4F:E5:2D:B4:6E:8A:BD:BF:03:BE:C2:CA:4C:AC:62:50:B1:64:19:5B:7A:F5:87:90:26:44:A9:B6"]
   }
 }]
