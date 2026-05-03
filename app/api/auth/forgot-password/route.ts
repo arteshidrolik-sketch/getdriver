@@ -59,7 +59,14 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { phone } = body;
 
-    if (!phone || phone.length !== 10) {
+    // Telefon numarasını normalize et (signup ile aynı format: 0XXXXXXXXXX - 11 hane)
+    const phoneDigits = phone.replace(/\D/g, "");
+    let normalizedPhone = phoneDigits;
+    if (normalizedPhone.length === 10 && !normalizedPhone.startsWith("0")) {
+      normalizedPhone = "0" + normalizedPhone;
+    }
+
+    if (!normalizedPhone || normalizedPhone.length !== 11 || !normalizedPhone.startsWith("0")) {
       return NextResponse.json(
         { error: "Geçerli bir telefon numarası girin" },
         { status: 400 }
@@ -68,7 +75,7 @@ export async function POST(request: Request) {
 
     // Kullanıcıyı kontrol et
     const user = await prisma.user.findUnique({
-      where: { phone },
+      where: { phone: normalizedPhone },
     });
 
     if (!user) {
@@ -82,7 +89,7 @@ export async function POST(request: Request) {
 
     // Eski kodları temizle
     await prisma.otpCode.deleteMany({
-      where: { phone },
+      where: { phone: normalizedPhone },
     });
 
     // Yeni kod oluştur
@@ -91,7 +98,7 @@ export async function POST(request: Request) {
 
     await prisma.otpCode.create({
       data: {
-        phone,
+        phone: normalizedPhone,
         code,
         expiresAt,
       },
@@ -99,15 +106,15 @@ export async function POST(request: Request) {
 
     // SMS gönder
     const message = `GetDriver şifre sıfırlama kodunuz: ${code}. Bu kod 10 dakika geçerlidir.`;
-    const smsSent = await sendSMS(phone, message);
+    const smsSent = await sendSMS(normalizedPhone, message);
 
     if (!smsSent) {
-      console.error("[ForgotPassword] SMS gönderilemedi:", phone);
+      console.error("[ForgotPassword] SMS gönderilemedi:", normalizedPhone);
       // SMS gönderilemese bile devam et (development modu)
     }
 
     // Development modunda kodu logla
-    console.log(`[ForgotPassword] Kod oluşturuldu - Telefon: ${phone}, Kod: ${code}`);
+    console.log(`[ForgotPassword] Kod oluşturuldu - Telefon: ${normalizedPhone}, Kod: ${code}`);
 
     return NextResponse.json({
       success: true,

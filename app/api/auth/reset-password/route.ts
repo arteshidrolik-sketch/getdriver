@@ -8,7 +8,13 @@ import bcrypt from "bcryptjs";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, code, password } = body;
+    const { phone: rawPhone, code, password } = body;
+
+    // Telefon numarasını normalize et (signup ile aynı format: 0XXXXXXXXXX - 11 hane)
+    const phoneDigits = rawPhone?.replace(/\D/g, "") || "";
+    const phone = phoneDigits.length === 10 && !phoneDigits.startsWith("0")
+      ? "0" + phoneDigits
+      : phoneDigits;
 
     // Validasyon
     if (!phone || !code || !password) {
