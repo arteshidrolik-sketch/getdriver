@@ -185,6 +185,61 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
     }
   }, [toast]);
 
+  // Handle address input blur - geocode if no selection made
+  const handlePickupBlur = useCallback(async () => {
+    // Kısa bir gecikme ile çalıştır (tıklama olayının işlenmesi için)
+    setTimeout(async () => {
+      if (skipSearchRef.current) return; // Seçim yapıldıysa atla
+      if (!pickupSearch || pickupSearch.length < 3) return;
+      if (pickup) return; // Zaten seçilmiş
+      
+      try {
+        const response = await fetch(`/api/geocode?address=${encodeURIComponent(pickupSearch)}`);
+        const data = await response.json();
+        
+        if (data.lat && data.lng) {
+          const location = {
+            lat: data.lat,
+            lng: data.lng,
+            address: data.address || pickupSearch,
+          };
+          setPickup(location);
+          setPickupSearch(location.address);
+          setPickupPredictions([]);
+          setActiveMap("dropoff");
+        }
+      } catch (error) {
+        console.error("Geocode error:", error);
+      }
+    }, 200);
+  }, [pickupSearch, pickup]);
+
+  const handleDropoffBlur = useCallback(async () => {
+    setTimeout(async () => {
+      if (skipSearchRef.current) return;
+      if (!dropoffSearch || dropoffSearch.length < 3) return;
+      if (dropoff) return;
+      
+      try {
+        const response = await fetch(`/api/geocode?address=${encodeURIComponent(dropoffSearch)}`);
+        const data = await response.json();
+        
+        if (data.lat && data.lng) {
+          const location = {
+            lat: data.lat,
+            lng: data.lng,
+            address: data.address || dropoffSearch,
+          };
+          setDropoff(location);
+          setDropoffSearch(location.address);
+          setDropoffPredictions([]);
+        }
+      } catch (error) {
+        console.error("Geocode error:", error);
+      }
+    }, 200);
+  }, [dropoffSearch, dropoff]);
+
   // Debounced search for pickup
   useEffect(() => {
     if (skipSearchRef.current) return; // Seçim yapıldıysa aramayı atla
@@ -201,6 +256,38 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
     }, 300);
     return () => clearTimeout(timer);
   }, [pickupSearch, searchPlaces]);
+
+  // Auto-select first prediction when user stops typing
+  useEffect(() => {
+    if (skipSearchRef.current) return;
+    if (pickupPredictions.length === 0) return;
+    if (pickup) return; // Already selected
+    
+    // Don't auto-select, let user choose from dropdown
+  }, [pickupPredictions, pickup]);
+
+  // Handle Enter key on pickup input
+  const handlePickupKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (pickupPredictions.length > 0) {
+        selectPlace(pickupPredictions[0].place_id, "pickup");
+      } else {
+        handlePickupBlur();
+      }
+    }
+  }, [pickupPredictions, selectPlace, handlePickupBlur]);
+
+  const handleDropoffKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (dropoffPredictions.length > 0) {
+        selectPlace(dropoffPredictions[0].place_id, "dropoff");
+      } else {
+        handleDropoffBlur();
+      }
+    }
+  }, [dropoffPredictions, selectPlace, handleDropoffBlur]);
 
   // Debounced search for dropoff
   useEffect(() => {
@@ -523,6 +610,8 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
                     }
                   }}
                   onFocus={() => setActiveMap("pickup")}
+                  onBlur={handlePickupBlur}
+                  onKeyDown={handlePickupKeyDown}
                   className={`pr-10 ${pickup ? "border-green-500 bg-green-50 dark:bg-green-950/20" : ""}`}
                 />
                 {pickup && (
@@ -597,6 +686,8 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
                     }
                   }}
                   onFocus={() => setActiveMap("dropoff")}
+                  onBlur={handleDropoffBlur}
+                  onKeyDown={handleDropoffKeyDown}
                   className={`pr-10 ${dropoff ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" : ""}`}
                 />
                 {dropoff && (
