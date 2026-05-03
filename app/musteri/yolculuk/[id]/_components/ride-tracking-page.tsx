@@ -69,6 +69,10 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
   const [cancelling, setCancelling] = useState(false);
   const [driverLocation, setDriverLocation] = useState<DriverLocation | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
 
   const currentStepIndex = RIDE_STEPS.findIndex(s => s.status === ride.status);
   const progress = ((currentStepIndex + 1) / RIDE_STEPS.length) * 100;
@@ -428,13 +432,73 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
         </Card>
       )}
 
-      {/* Completed Actions */}
+      {/* Completed Actions + Rating */}
       {isCompleted && (
         <Card className="border-green-200 bg-green-50">
           <CardContent className="p-4 text-center">
             <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-3" />
             <h3 className="text-lg font-semibold text-green-700">Yolculuk Tamamlandı!</h3>
             <p className="text-sm text-green-600 mb-4">Teşekkür ederiz, iyi yolculuklar!</p>
+
+            {/* Rating Section */}
+            {!ratingSubmitted ? (
+              <div className="mt-4 mb-4 text-left">
+                <p className="text-sm font-medium text-gray-700 mb-2 text-center">Sürücünüzü değerlendirin</p>
+                <div className="flex justify-center gap-2 mb-3">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setRatingScore(s)}
+                      className={`text-3xl transition-transform hover:scale-110 ${
+                        s <= ratingScore ? "text-yellow-400" : "text-gray-300"
+                      }`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                {ratingScore > 0 && (
+                  <>
+                    <Textarea
+                      placeholder="Yorum ekleyin (opsiyonel)"
+                      value={ratingComment}
+                      onChange={(e) => setRatingComment(e.target.value)}
+                      rows={2}
+                      className="mb-2"
+                    />
+                    <Button
+                      className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                      disabled={ratingLoading}
+                      onClick={async () => {
+                        setRatingLoading(true);
+                        try {
+                          const res = await fetch(`/api/rides/${ride.id}/rate`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ score: ratingScore, comment: ratingComment }),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setRatingSubmitted(true);
+                          } else {
+                            if (data.error === "Bu yolculuğu zaten değerlendirdiniz") setRatingSubmitted(true);
+                          }
+                        } catch {}
+                        setRatingLoading(false);
+                      }}
+                    >
+                      {ratingLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
+                      Değerlendir
+                    </Button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="mb-4 p-3 bg-yellow-50 rounded-lg">
+                <p className="text-yellow-700 font-medium text-sm">⭐ {ratingScore}/5 puan verdiniz, teşekkürler!</p>
+              </div>
+            )}
+
             <div className="flex gap-2 justify-center">
               <Link href="/musteri">
                 <Button variant="outline">Ana Sayfa</Button>
