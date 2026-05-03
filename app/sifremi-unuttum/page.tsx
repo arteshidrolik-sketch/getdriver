@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      const res = await fetch("/api/auth/forgot-password", {
+      const res = await fetch("/api/password/forgot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: cleanedPhone }),
@@ -154,7 +154,7 @@ export default function ForgotPasswordPage() {
 
       const cleanedPhone = phone.replace(/\D/g, "");
       
-      const res = await fetch("/api/auth/reset-password", {
+      const res = await fetch("/api/password/reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -198,7 +198,7 @@ export default function ForgotPasswordPage() {
     try {
       const cleanedPhone = phone.replace(/\D/g, "");
       
-      const res = await fetch("/api/auth/forgot-password", {
+      const res = await fetch("/api/password/forgot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: cleanedPhone }),
