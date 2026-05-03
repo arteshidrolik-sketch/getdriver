@@ -191,7 +191,7 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
     setTimeout(async () => {
       if (skipSearchRef.current) return; // Seçim yapıldıysa atla
       if (!pickupSearch || pickupSearch.length < 3) return;
-      if (pickup) return; // Zaten seçilmiş
+      if (pickup && pickup.address === pickupSearch) return; // Zaten seçilmiş ve adres aynı
       
       try {
         const response = await fetch(`/api/geocode?address=${encodeURIComponent(pickupSearch)}`);
@@ -218,7 +218,7 @@ export function NewRequestForm({ vehicles, savedAddresses, paymentMethods }: New
     setTimeout(async () => {
       if (skipSearchRef.current) return;
       if (!dropoffSearch || dropoffSearch.length < 3) return;
-      if (dropoff) return;
+      if (dropoff && dropoff.address === dropoffSearch) return;
       
       try {
         const response = await fetch(`/api/geocode?address=${encodeURIComponent(dropoffSearch)}`);
