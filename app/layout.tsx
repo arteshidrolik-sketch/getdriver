@@ -17,7 +17,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || "https://www.getdriver.com.tr"),
   title: "GetDriver - Güvenli Sürücü Hizmeti",
   description: "Aracınızı ve sizi güvenle eve ulaştırıyoruz. Türkiye'nin güvenilir designated driver platformu.",
   manifest: "/manifest.json",
