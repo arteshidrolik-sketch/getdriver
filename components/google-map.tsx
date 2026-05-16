@@ -30,9 +30,16 @@ interface GoogleMapProps {
   driverLocation?: { lat: number; lng: number };
 }
 
-// API anahtarı doğrudan environment variable'dan
-function getGoogleMapsApiKey(): string {
-  return "AIzaSyC2zHQEBjFSGq29_s8NPbeyvsssGcp4oZ4";
+// API anahtarını sunucudan çek
+async function fetchGoogleMapsApiKey(): Promise<string> {
+  try {
+    const res = await fetch("/api/maps/config");
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.apiKey || "";
+  } catch {
+    return "";
+  }
 }
 
 // Default center - Istanbul
@@ -87,19 +94,34 @@ export function GoogleMap({
       return () => clearInterval(checkLoaded);
     }
 
-    // API key'i doğrudan kullan
-    const apiKey = getGoogleMapsApiKey();
-    if (!apiKey) {
-      setError("Google Maps API key bulunamadı");
-      return;
-    }
+    // API key'i sunucudan çek
+    fetchGoogleMapsApiKey().then((apiKey) => {
+      if (!apiKey) {
+        setError("Google Maps API key bulunamadı");
+        return;
+      }
 
-    console.log("Loading Google Maps with key...");
-    
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
-    script.async = true;
-    script.defer = true;
+      // Double-check: loading sırasında başka biri yüklemiş olabilir
+      if (window.google?.maps) {
+        setIsReady(true);
+        return;
+      }
+      if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+        const checkLoaded = setInterval(() => {
+          if (window.google?.maps) {
+            clearInterval(checkLoaded);
+            setIsReady(true);
+          }
+        }, 100);
+        return;
+      }
+
+      console.log("Loading Google Maps...");
+      
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initGoogleMaps`;
+      script.async = true;
+      script.defer = true;
 
     window.initGoogleMaps = () => {
       console.log("Google Maps loaded successfully");
@@ -107,12 +129,13 @@ export function GoogleMap({
       setIsReady(true);
     };
 
-    script.onerror = (e) => {
-      console.error("Google Maps script error:", e);
-      setError("Google Maps yüklenemedi - Script hatası");
-    };
+      script.onerror = (e) => {
+        console.error("Google Maps script error:", e);
+        setError("Google Maps yüklenemedi - Script hatası");
+      };
 
-    document.head.appendChild(script);
+      document.head.appendChild(script);
+    });
   }, []);
 
   // Initialize map - only once when ready
