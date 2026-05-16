@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
-import { generatePresignedUploadUrl } from "@/lib/s3";
+import { put } from "@vercel/blob";
 
 // İzin verilen içerik tipleri (whitelist)
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -15,15 +15,15 @@ const ALLOWED_CONTENT_TYPES = new Set([
   "application/pdf",
 ]);
 
-// Maksimum dosya adı uzunluğu
-const MAX_FILENAME_LENGTH = 200;
+// Maksimum dosya boyutu: 10MB
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-// Güvenli dosya adı: path traversal ve özel karakterleri temizle
+// Güvenli dosya adı
 function sanitizeFileName(fileName: string): string {
   return fileName
-    .replace(/[^a-zA-Z0-9._\-\u00C0-\u024F]/g, "_") // sadece güvenli karakterler
-    .replace(/\.{2,}/g, ".") // çift nokta yok (path traversal)
-    .substring(0, MAX_FILENAME_LENGTH);
+    .replace(/[^a-zA-Z0-9._\-]/g, "_")
+    .replace(/\.{2,}/g, ".")
+    .substring(0, 200);
 }
 
 export async function POST(request: Request) {
@@ -33,49 +33,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
     }
 
-    const { fileName, contentType } = await request.json();
+    const contentType = request.headers.get("content-type") || "";
+    
+    // Check if this is a direct file upload or JSON request for presigned URL
+    if (contentType.includes("application/json")) {
+      // Legacy presigned URL request - return a direct upload endpoint
+      const { fileName, contentType: fileType } = await request.json();
 
-    if (!fileName || !contentType) {
-      return NextResponse.json(
-        { error: "Dosya adı ve türü gerekli" },
-        { status: 400 }
-      );
+      if (!fileName || !fileType) {
+        return NextResponse.json(
+          { error: "Dosya adı ve türü gerekli" },
+          { status: 400 }
+        );
+      }
+
+      if (!ALLOWED_CONTENT_TYPES.has(fileType.toLowerCase())) {
+        return NextResponse.json(
+          { error: `Desteklenmeyen dosya türü: ${fileType}` },
+          { status: 400 }
+        );
+      }
+
+      // Return upload endpoint info for client-side direct upload
+      return NextResponse.json({
+        uploadUrl: "/api/upload/blob",
+        method: "POST",
+        cloud_storage_path: `uploads/${Date.now()}-${sanitizeFileName(fileName)}`,
+      });
     }
 
-    // İçerik tipi doğrulaması (whitelist)
-    if (!ALLOWED_CONTENT_TYPES.has(contentType.toLowerCase())) {
-      return NextResponse.json(
-        {
-          error: `Desteklenmeyen dosya türü: ${contentType}. İzin verilen türler: ${[...ALLOWED_CONTENT_TYPES].join(", ")}`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Dosya adını sanitize et
-    const safeFileName = sanitizeFileName(String(fileName));
-    if (!safeFileName) {
-      return NextResponse.json({ error: "Geçersiz dosya adı" }, { status: 400 });
-    }
-
-    // isPublic parametresi kullanıcıdan alınmaz; sunucu tarafında false olarak sabitlendi.
-    // Gerekirse bu mantık role/bağlama göre genişletilebilir.
-    const isPublic = false;
-
-    const { uploadUrl, cloud_storage_path } = await generatePresignedUploadUrl(
-      safeFileName,
-      contentType,
-      isPublic
-    );
-
-    return NextResponse.json({
-      uploadUrl,
-      cloud_storage_path,
-    });
+    return NextResponse.json({ error: "Geçersiz istek" }, { status: 400 });
   } catch (error) {
-    console.error("Presigned URL error:", error);
+    console.error("Upload error:", error);
     return NextResponse.json(
-      { error: "Yükleme URL'i oluşturulamadı" },
+      { error: "Yükleme hatası" },
       { status: 500 }
     );
   }

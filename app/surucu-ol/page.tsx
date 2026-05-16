@@ -79,24 +79,21 @@ export default function DriverRegisterPage() {
 
   const uploadFile = async (file: File): Promise<string | null> => {
     try {
-      const presignedRes = await fetch("/api/upload/presigned", {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("path", "drivers");
+
+      const uploadRes = await fetch("/api/upload/blob", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: file.name,
-          contentType: file.type,
-          isPublic: false,
-        }),
-      });
-      const { uploadUrl, cloud_storage_path } = await presignedRes.json();
-
-      await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
+        body: formData,
       });
 
-      return cloud_storage_path;
+      if (!uploadRes.ok) {
+        throw new Error("Y\u00fckleme ba\u015far\u0131s\u0131z");
+      }
+
+      const { url } = await uploadRes.json();
+      return url;
     } catch (error) {
       console.error("Upload error:", error);
       return null;

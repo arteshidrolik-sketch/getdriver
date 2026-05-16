@@ -218,31 +218,22 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
     try {
       const file = fileInputRef.current.files[0];
       
-      // Get presigned URL
-      const presignRes = await fetch("/api/upload/presigned", {
+      // Upload to Vercel Blob
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("path", `rides/${ride.id}`);
+
+      const uploadRes = await fetch("/api/upload/blob", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: `ride-${ride.id}-${ride.status}.jpg`,
-          contentType: file.type,
-          isPublic: true
-        })
+        body: formData,
       });
 
-      const { uploadUrl, cloud_storage_path } = await presignRes.json();
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json();
+        throw new Error(err.error || "Yükleme başarısız");
+      }
 
-      // Upload to S3
-      await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      });
-
-      // Get public URL
-      const publicUrl = `https://elliott-king.github.io/assets/images/s3_heroku_rails/direct_upload_flow.png`;
-
-      // For demo, use a placeholder URL since we might not have all env vars
-      const photoUrl = publicUrl || photoPreview;
+      const { url: photoUrl } = await uploadRes.json();
 
       // Update status with photo
       const nextStatus = currentStep?.nextStatus;
@@ -250,7 +241,7 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
         await handleStatusUpdate(nextStatus, photoUrl);
       }
     } catch (error: any) {
-      toast({ title: "Hata", description: "Fotoğraf yüklenemedi", variant: "destructive" });
+      toast({ title: "Hata", description: error.message || "Fotoğraf yüklenemedi", variant: "destructive" });
     } finally {
       setUploadingPhoto(false);
     }
