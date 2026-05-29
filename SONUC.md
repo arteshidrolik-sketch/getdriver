@@ -32,11 +32,11 @@
 
 ## 🎉 BAŞARI! iOS Build Tamamlandı
 
-### Build #12 - BAŞARILI ✅
-- **Tarih:** 2026-05-29 21:15 UTC
+### Build #17 - BAŞARILI ✅
+- **Tarih:** 2026-05-29 22:01 UTC
 - **Status:** SUCCESS
 - **Artifact:** ios-build.zip (49 MB)
-- **Download:** https://github.com/arteshidrolik-sketch/getdriver/actions/runs/26662520110/artifacts/7301215737
+- **Download:** https://github.com/arteshidrolik-sketch/getdriver/actions/runs/26664365298/artifacts/7301961460
 
 ### Build Geçmişi:
 | Run | Sorun | Çözüm |
@@ -46,7 +46,9 @@
 | #6 | iPhone 15 simulator yok | iPhone 16 kullanıldı |
 | #8 | AppIcon 512x512 | 1024x1024 yeniden boyutlandırıldı |
 | #10 | Build başarılı ama artifact yok | -derivedDataPath eklendi |
-| **#12** | **✅ BAŞARILI** | **Artifact indirilebilir** |
+| #12 | ✅ BAŞARILI | Artifact indirilebilir |
+| #15 | iPhone 16 bulunamadı | iPhone 16e kullanıldı |
+| **#17** | **✅ BAŞARILI** | **Artifact indirilebilir** |
 
 ---
 
@@ -64,7 +66,7 @@
 ## 🚀 Sonraki Adımlar
 
 ### 1. Artifact'ı İndir
-https://github.com/arteshidrolik-sketch/getdriver/actions/runs/26662520110/artifacts/7301215737
+https://github.com/arteshidrolik-sketch/getdriver/actions/runs/26664365298/artifacts/7301961460
 
 ### 2. Gerçek Cihaz Build'i (App Store için)
 Şu anki build **simulator** için. Gerçek cihaz/App Store için:
