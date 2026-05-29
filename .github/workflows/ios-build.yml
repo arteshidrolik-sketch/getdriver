@@ -40,6 +40,7 @@ jobs:
           -scheme App \
           -configuration Release \
           -destination 'platform=iOS Simulator,name=iPhone 16' \
+          -derivedDataPath build \
           clean build
           
     - name: Upload build artifacts
