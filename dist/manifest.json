@@ -1,0 +1,72 @@
+{
+  "id": "com.getdriver.app",
+  "name": "GetDriver - Güvenli Sürücü Hizmeti",
+  "short_name": "GetDriver",
+  "description": "Türkiye'nin güvenli şoför platformu. Aracınızı siz kullanmayın, biz getirelim.",
+  "start_url": "https://www.getdriver.com.tr/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait-primary",
+  "scope": "https://www.getdriver.com.tr/",
+  "lang": "tr",
+  "categories": ["transportation", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Yeni Talep Oluştur",
+      "short_name": "Yeni Talep",
+      "description": "Yeni bir sürücü talebi oluşturun",
+      "url": "/musteri/yeni-talep",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Taleplerim",
+      "short_name": "Talepler",
+      "description": "Mevcut taleplerinizi görüntüleyin",
+      "url": "/musteri/talepler",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

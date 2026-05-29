@@ -1,7 +1,10 @@
-import { SettingsManagement } from "./_components/settings-management";
+'use client';
 
-export const dynamic = "force-dynamic";
-
-export default function SettingsPage() {
-  return <SettingsManagement />;
+export default function Page() {
+  return (
+    <div className="p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">GetDriver - Admin</h1>
+      <p>Bu sayfa uygulama içinde çalışır.</p>
+    </div>
+  );
 }

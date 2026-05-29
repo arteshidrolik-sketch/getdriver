@@ -1,28 +1,10 @@
-import { DriverManagement } from "./_components/driver-management";
+'use client';
 
-export const dynamic = "force-dynamic";
-
-export default async function DriversPage() {
-  let drivers: any[] = [];
-
-  try {
-    const { prisma } = await import("@/lib/db");
-    drivers = await prisma.driver.findMany({
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: { select: { id: true, name: true, phone: true, email: true, status: true, createdAt: true } },
-        vehicle: true,
-        _count: { select: { rides: true } },
-      },
-    });
-    drivers = JSON.parse(JSON.stringify(drivers));
-  } catch (e) {
-    // Database not available, use empty array
-  }
-
+export default function Page() {
   return (
-    <DriverManagement
-      drivers={drivers}
-    />
+    <div className="p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">GetDriver - Admin</h1>
+      <p>Bu sayfa uygulama içinde çalışır.</p>
+    </div>
   );
 }

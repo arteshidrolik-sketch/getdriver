@@ -1,20 +1,10 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { prisma } from "@/lib/db";
-import { PaymentMethodsPage } from "./_components/payment-methods-page";
+'use client';
 
-export default async function PaymentPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/giris");
-  }
-
-  const userId = (session.user as any).id;
-  const paymentMethods = await prisma.paymentMethod.findMany({
-    where: { userId },
-    orderBy: { isDefault: "desc" },
-  });
-
-  return <PaymentMethodsPage paymentMethods={paymentMethods} />;
+export default function Page() {
+  return (
+    <div className="p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">GetDriver</h1>
+      <p>Bu sayfa uygulama içinde çalışır.</p>
+    </div>
+  );
 }

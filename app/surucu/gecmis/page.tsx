@@ -1,39 +1,10 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth-options";
-import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
-import { DriverHistoryPage } from "./_components/driver-history-page";
+'use client';
 
-export default async function DriverGecmisPage() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user) {
-    redirect("/giris");
-  }
-
-  const userId = (session.user as any).id;
-
-  const rides = await prisma.ride.findMany({
-    where: {
-      driverId: userId,
-      status: {
-        in: ["COMPLETED", "CANCELLED"]
-      }
-    },
-    include: {
-      request: {
-        include: {
-          customer: true,
-          vehicle: true
-        }
-      },
-      ratings: true
-    },
-    orderBy: {
-      createdAt: "desc"
-    },
-    take: 50
-  });
-
-  return <DriverHistoryPage rides={rides} />;
+export default function Page() {
+  return (
+    <div className="p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">GetDriver - Sürücü</h1>
+      <p>Bu sayfa uygulama içinde çalışır.</p>
+    </div>
+  );
 }

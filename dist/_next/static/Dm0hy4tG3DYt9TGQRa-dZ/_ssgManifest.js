@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fmusteri\u002Ftalep\u002F[id]","\u002Fmusteri\u002Fyolculuk\u002F[id]","\u002Fsurucu\u002Fyolculuk\u002F[id]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
