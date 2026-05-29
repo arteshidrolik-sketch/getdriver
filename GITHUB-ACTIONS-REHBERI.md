@@ -25,23 +25,23 @@ GitHub Actions **ücretsiz** macOS runner'ları var!
 
 ## 🚀 Nasıl Çalışır
 
-### Adım 1: Push Yap
-```bash
-git add .
-git commit -m "iOS build hazirligi"
-git push origin main
-```
-
-### Adım 2: GitHub'da İzle
-1. GitHub repo'ya git
+### Adım 1: Manuel Tetikle (Şimdi)
+GitHub'da:
+1. Repo'ya git: https://github.com/arteshidrolik-sketch/getdriver
 2. **Actions** sekmesine tıkla
-3. **iOS Build** workflow'u göreceksin
-4. Build'in tamamlanmasını bekle (5-10 dk)
+3. Sol tarafta **iOS Build** göreceksin
+4. **Run workflow** butonuna tıkla
+5. **Run workflow** seçeneğini tekrar tıkla
+
+### Adım 2: Build'i İzle
+- Build ~5-10 dakika sürer
+- Yeşil tik = başarılı
+- Kırmızı çarpı = hata (logları kontrol et)
 
 ### Adım 3: Artifact İndir
 Build tamamlanınca:
 1. Workflow run'a tıkla
-2. **Artifacts** bölümüne git
+2. En altta **Artifacts** bölümü
 3. **ios-build** dosyasını indir
 
 ---
@@ -115,6 +115,16 @@ Evet, Actions sekmesinden "Run workflow"
 
 **Q: IPA oluşturur mu?**
 Şu an sadece simulator build. Sertifika eklenince IPA.
+
+---
+
+## 🎯 Hemen Başla
+
+1. GitHub'a git: https://github.com/arteshidrolik-sketch/getdriver/actions
+2. **iOS Build** workflow'unu bul
+3. **Run workflow** butonuna tıkla
+4. Build'i izle
+5. Artifact'ı indir
 
 ---
 
