@@ -39,13 +39,10 @@ jobs:
         echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
         chmod 600 ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
 
-    - name: Build iOS (Release - Archive)
+    - name: Archive iOS App
       run: |
         cd ios/App
-        
-        # Clean derived data first
         rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
-        
         xcodebuild -project App.xcodeproj \
           -scheme App \
           -configuration Release \
@@ -59,30 +56,29 @@ jobs:
           CODE_SIGN_STYLE=Automatic \
           clean archive
 
-    - name: Export and Upload to App Store Connect
+    - name: Export IPA (re-sign with Distribution)
       run: |
         cd ios/App
-        cat > ExportOptions.plist << 'PLISTEOF'
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-          <key>method</key>
-          <string>app-store-connect</string>
-          <key>destination</key>
-          <string>upload</string>
-          <key>signingStyle</key>
-          <string>automatic</string>
-          <key>teamID</key>
-          <string>${{ secrets.APPLE_TEAM_ID }}</string>
-          <key>uploadSymbols</key>
-          <true/>
-          <key>manageAppVersionAndBuildNumber</key>
-          <true/>
-        </dict>
-        </plist>
-        PLISTEOF
-        
+        cat > ExportOptions.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store-connect</string>
+  <key>signingStyle</key>
+  <string>automatic</string>
+  <key>teamID</key>
+  <string>${{ secrets.APPLE_TEAM_ID }}</string>
+  <key>uploadSymbols</key>
+  <true/>
+  <key>manageAppVersionAndBuildNumber</key>
+  <true/>
+  <key>signingCertificate</key>
+  <string>Apple Distribution</string>
+</dict>
+</plist>
+EOF
         xcodebuild -exportArchive \
           -archivePath build/App.xcarchive \
           -exportPath build/export \
@@ -92,11 +88,19 @@ jobs:
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }}
 
+    - name: Upload to App Store Connect
+      run: |
+        cd ios/App
+        xcrun altool --upload-app \
+          --type ios \
+          --file build/export/App.ipa \
+          --apiKey ${{ secrets.APPSTORE_KEY_ID }} \
+          --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+
     - name: Upload build artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: ios-build
-        path: |
-          ios/App/build/export/
+        path: ios/App/build/export/
         retention-days: 7
