@@ -74,14 +74,35 @@ jobs:
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }}
 
+    - name: Create Upload ExportOptions
+      run: |
+        cd ios/App
+        printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>method</key>\n  <string>app-store-connect</string>\n  <key>signingStyle</key>\n  <string>automatic</string>\n  <key>teamID</key>\n  <string>${{ secrets.APPLE_TEAM_ID }}</string>\n  <key>destination</key>\n  <string>upload</string>\n  <key>manageAppVersionAndBuildNumber</key>\n  <true/>\n  <key>signingCertificate</key>\n  <string>Apple Distribution</string>\n</dict>\n</plist>\n' > ExportOptionsUpload.plist
+        cat ExportOptionsUpload.plist
+
     - name: Upload to App Store Connect
       run: |
         cd ios/App
-        xcrun altool --upload-app \
-          --type ios \
-          --file build/export/App.ipa \
-          --apiKey ${{ secrets.APPSTORE_KEY_ID }} \
-          --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+        echo "Uploading App.ipa to App Store Connect..."
+        ls -la build/export/
+        xcrun notarytool --version 2>/dev/null || true
+        # Use xcodebuild to upload via App Store Connect API
+        xcodebuild -exportArchive \
+          -archivePath build/App.xcarchive \
+          -exportPath build/upload \
+          -exportOptionsPlist ExportOptionsUpload.plist \
+          -allowProvisioningUpdates \
+          -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 \
+          -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
+          -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }} || {
+          echo "xcodebuild upload failed, trying altool fallback..."
+          xcrun altool --upload-app \
+            --type ios \
+            --file build/export/App.ipa \
+            --apiKey ${{ secrets.APPSTORE_KEY_ID }} \
+            --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }}
+        }
+        echo "Upload completed."
 
     - name: Upload build artifacts
       if: always()
