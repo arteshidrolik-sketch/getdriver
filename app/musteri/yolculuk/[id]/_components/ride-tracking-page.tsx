@@ -39,6 +39,7 @@ import {
 import { formatPrice, formatDate, getStatusText, getStatusColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { GoogleMap } from "@/components/google-map";
+import { RideChat } from "@/components/ride-chat";
 
 interface RideTrackingPageProps {
   ride: any;
@@ -73,7 +74,6 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
   const [ratingComment, setRatingComment] = useState("");
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const [ratingLoading, setRatingLoading] = useState(false);
-
   const currentStepIndex = RIDE_STEPS.findIndex(s => s.status === ride.status);
   const progress = ((currentStepIndex + 1) / RIDE_STEPS.length) * 100;
   const cancellationFee = ride.price * 0.3;
@@ -510,6 +510,17 @@ export function RideTrackingPage({ ride: initialRide }: RideTrackingPageProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Mesajlaşma */}
+      <div className="h-[400px]">
+        <RideChat
+          rideId={ride.id}
+          rideStatus={ride.status}
+          currentUserType="CUSTOMER"
+          otherPartyName={driver?.user?.name || "Sürücü"}
+          initialMessages={ride.messages || []}
+        />
+      </div>
 
       {/* Cancel Button - Only show for active rides */}
       {!isCompleted && !isCancelled && (
