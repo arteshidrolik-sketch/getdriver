@@ -115,10 +115,17 @@ export async function PATCH(
 
     // Handle photo upload
     if (photoUrl && photoType) {
+      // Map simple BEFORE/AFTER to valid enum values
+      const photoTypeMap: Record<string, string> = {
+        "BEFORE": "BEFORE_FRONT_LEFT",
+        "AFTER": "AFTER_FRONT_LEFT",
+      };
+      const resolvedType = photoTypeMap[photoType] || photoType;
+      
       await prisma.ridePhoto.create({
         data: {
           rideId: ride.id,
-          type: photoType,
+          type: resolvedType as any,
           photoUrl
         }
       });
