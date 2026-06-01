@@ -75,7 +75,7 @@ export default function DriverAgreementPage() {
 
           <h2>7. İletişim</h2>
           <p>
-            Sürücü desteği: surucu@guvenilsur.com
+            Sürücü desteği: destek@getdriver.com.tr
           </p>
         </div>
       </main>

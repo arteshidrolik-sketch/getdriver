@@ -399,7 +399,7 @@ export function DriverProfilePage({ user }: DriverProfilePageProps) {
       {/* Yasal Belgeler */}
       <Card>
         <CardContent className="p-6">
-          <h3 className="font-semibold mb-3">Yasal Belgeler</h3>
+          <h3 className="font-semibold mb-3">Yasal Belgeler & İletişim</h3>
           <div className="space-y-2">
             <a href="/surucu-sozlesmesi" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
               <FileText className="h-4 w-4" /> Sürücü Sözleşmesi
@@ -409,6 +409,9 @@ export function DriverProfilePage({ user }: DriverProfilePageProps) {
             </a>
             <a href="/gizlilik" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
               <Shield className="h-4 w-4" /> Gizlilik Politikası / KVKK
+            </a>
+            <a href="mailto:destek@getdriver.com.tr" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <Mail className="h-4 w-4" /> destek@getdriver.com.tr
             </a>
           </div>
         </CardContent>

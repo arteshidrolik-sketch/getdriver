@@ -71,7 +71,7 @@ export default function TermsPage() {
 
           <h2>6. İletişim</h2>
           <p>
-            Sorularınız için: destek@guvenilsur.com
+            Sorularınız için: destek@getdriver.com.tr
           </p>
         </div>
       </main>

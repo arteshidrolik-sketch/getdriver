@@ -95,8 +95,8 @@ export default function PrivacyPage() {
           <h2>8. İletişim</h2>
           <p>
             KVKK kapsamındaki talepleriniz ve sorularınız için:<br />
-            E-posta: <a href="mailto:kvkk@getdriver.com" className="text-green-600">kvkk@getdriver.com</a><br />
-            Destek: <a href="mailto:destek@getdriver.com" className="text-green-600">destek@getdriver.com</a>
+            E-posta: <a href="mailto:destek@getdriver.com.tr" className="text-green-600">destek@getdriver.com.tr</a><br />
+            Destek: <a href="mailto:destek@getdriver.com.tr" className="text-green-600">destek@getdriver.com.tr</a>
           </p>
         </div>
       </main>
