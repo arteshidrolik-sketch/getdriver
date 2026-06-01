@@ -22,11 +22,8 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build web app
-      run: npm run build
-
-    - name: Sync Capacitor iOS
-      run: npx cap sync ios
+    - name: Build web app (mobile/static export)
+      run: npm run build:ios
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1

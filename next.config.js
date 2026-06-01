@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  distDir: 'dist',
+  // ⚠️  output: 'export' KULLANMA! API route'ları öldürür.
+  // iOS/Android build için: npm run build:mobile (ayrı config kullanır)
+  ...(process.env.CAPACITOR_BUILD === 'true' ? { output: 'export', distDir: 'dist' } : {}),
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   images: {
