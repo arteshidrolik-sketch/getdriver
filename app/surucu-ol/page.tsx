@@ -22,6 +22,8 @@ export default function DriverRegisterPage() {
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [criminalRecordPhoto, setCriminalRecordPhoto] = useState<File | null>(null);
   const [criminalDeclare, setCriminalDeclare] = useState(false);
+  const [contractAccepted, setContractAccepted] = useState(false);
+  const [kvkkAccepted, setKvkkAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -125,6 +127,24 @@ export default function DriverRegisterPage() {
       toast({
         title: "Hata",
         description: "Adli sicil beyanını onaylamanız gerekiyor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!contractAccepted) {
+      toast({
+        title: "Hata",
+        description: "Sürücü sözleşmesini kabul etmeniz gerekiyor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!kvkkAccepted) {
+      toast({
+        title: "Hata",
+        description: "KVKK aydınlatma metnini onaylamanız gerekiyor",
         variant: "destructive",
       });
       return;
@@ -466,6 +486,39 @@ export default function DriverRegisterPage() {
                 </label>
               </div>
 
+              {/* Sözleşme Onayları */}
+              <div className="space-y-3 border-t pt-4">
+                <p className="text-sm font-semibold text-gray-700">Sözleşme ve Onaylar</p>
+                
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="contract"
+                    checked={contractAccepted}
+                    onChange={(e) => setContractAccepted(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <label htmlFor="contract" className="text-sm text-blue-800">
+                    <FileText className="inline h-4 w-4 mr-1" />
+                    <Link href="/surucu-sozlesmesi" target="_blank" className="underline font-medium">Sürücü Sözleşmesi</Link>&apos;ni okudum ve kabul ediyorum.
+                  </label>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="kvkk"
+                    checked={kvkkAccepted}
+                    onChange={(e) => setKvkkAccepted(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <label htmlFor="kvkk" className="text-sm text-blue-800">
+                    <Shield className="inline h-4 w-4 mr-1" />
+                    <Link href="/gizlilik" target="_blank" className="underline font-medium">KVKK Aydınlatma Metni</Link>&apos;ni ve <Link href="/kullanim-sartlari" target="_blank" className="underline font-medium">Kullanım Şartları</Link>&apos;nı okudum, kişisel verilerimin işlenmesini kabul ediyorum.
+                  </label>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -478,7 +531,7 @@ export default function DriverRegisterPage() {
                 <Button
                   type="submit"
                   className="flex-1 bg-green-600 hover:bg-green-700"
-                  disabled={loading}
+                  disabled={loading || !contractAccepted || !kvkkAccepted || !criminalDeclare}
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Başvuruyu Gönder"}
                 </Button>

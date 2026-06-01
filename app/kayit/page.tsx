@@ -19,6 +19,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
@@ -273,10 +274,24 @@ export default function RegisterPage() {
               )}
             </div>
 
+            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-1"
+              />
+              <label htmlFor="terms" className="text-xs text-blue-800">
+                <Shield className="inline h-3 w-3 mr-1" />
+                <Link href="/kullanim-sartlari" target="_blank" className="underline font-medium">Kullanım Şartları</Link>&apos;nı ve <Link href="/gizlilik" target="_blank" className="underline font-medium">Gizlilik Politikası</Link>&apos;nı okudum ve kabul ediyorum.
+              </label>
+            </div>
+
             <Button
               type="submit"
               className="w-full bg-green-600 hover:bg-green-700"
-              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || phone.length !== 11}
+              disabled={loading || !isPasswordValid || password !== confirmPassword || !firstName.trim() || !lastName.trim() || phone.length !== 11 || !termsAccepted}
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
