@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Loader2, ArrowLeft, CreditCard, CheckCircle, AlertTriangle } from "luci
 import { formatPrice } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
-export default function OdemePage() {
+function OdemeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -265,5 +265,13 @@ export default function OdemePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function OdemePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto" /></div>}>
+      <OdemeContent />
+    </Suspense>
   );
 }

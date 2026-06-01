@@ -4,8 +4,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:mobile": "CAPACITOR_BUILD=true next build",
-    "build:ios": "CAPACITOR_BUILD=true next build && npx cap sync ios",
+    "build:mobile": "bash scripts/mobile-build.sh",
+    "build:ios": "bash scripts/mobile-build.sh && npx cap sync ios",
     "build:android": "CAPACITOR_BUILD=true next build && npx cap sync android",
     "start": "next start",
     "lint": "next lint",
