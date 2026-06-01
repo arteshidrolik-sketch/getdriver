@@ -88,9 +88,19 @@ jobs:
         xcrun altool --upload-app \
           --type ios \
           --file "$IPA_FILE" \
-          --apiKey ${{ secrets.APPSTORE_KEY_ID }} \
-          --apiIssuer ${{ secrets.APPSTORE_ISSUER_ID }} \
-          --verbose
+          --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
+          --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
+          --verbose || {
+          echo "altool failed, trying xcodebuild upload..."
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build/upload \
+            -exportOptionsPlist <(printf '<?xml version="1.0" encoding="UTF-8"?>\n<plist version="1.0">\n<dict>\n  <key>method</key>\n  <string>app-store-connect</string>\n  <key>destination</key>\n  <string>upload</string>\n  <key>signingStyle</key>\n  <string>automatic</string>\n  <key>teamID</key>\n  <string>'"${{ secrets.APPLE_TEAM_ID }}"'</string>\n</dict>\n</plist>') \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_"${{ secrets.APPSTORE_KEY_ID }}".p8 \
+            -authenticationKeyID "${{ secrets.APPSTORE_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APPSTORE_ISSUER_ID }}"
+        }
         echo "Upload completed successfully!"
 
     - name: Upload build artifacts
