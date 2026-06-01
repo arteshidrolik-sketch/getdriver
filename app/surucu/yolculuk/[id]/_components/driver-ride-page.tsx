@@ -60,6 +60,8 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   const [cancelReason, setCancelReason] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoAngleIndex, setPhotoAngleIndex] = useState(0);
+  const [capturedPhotos, setCapturedPhotos] = useState<{type: string, url: string}[]>([]);
   const [currentLocation, setCurrentLocation] = useState<{lat: number, lng: number} | null>(null);
   const [locationSharing, setLocationSharing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,6 +77,16 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   const isCompleted = ride.status === "COMPLETED";
   const isCancelled = ride.status === "CANCELLED";
   const isActive = !isCompleted && !isCancelled;
+
+  const PHOTO_ANGLES = [
+    { type: "FRONT_LEFT", label: "Sol Ön", icon: "↖️", hint: "Aracın sol ön köşesini çekin" },
+    { type: "FRONT_RIGHT", label: "Sağ Ön", icon: "↗️", hint: "Aracın sağ ön köşesini çekin" },
+    { type: "REAR_LEFT", label: "Sol Arka", icon: "↙️", hint: "Aracın sol arka köşesini çekin" },
+    { type: "REAR_RIGHT", label: "Sağ Arka", icon: "↘️", hint: "Aracın sağ arka köşesini çekin" },
+  ];
+
+  const photoPrefix = ride.status === "PHOTOS_BEFORE" ? "BEFORE" : "AFTER";
+  const currentAngle = PHOTO_ANGLES[photoAngleIndex];
 
   // Konum paylaşımını başlat/durdur
   useEffect(() => {
@@ -232,18 +244,41 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
     });
   };
 
-  const handlePhotoUpload = async () => {
+  const handlePhotoCapture = async () => {
     if (!photoPreview) return;
 
     setUploadingPhoto(true);
     try {
-      // Compress image client-side (800px max, 60% quality)
       const compressedPhoto = await compressImage(photoPreview);
+      const fullType = `${photoPrefix}_${currentAngle.type}`;
 
-      // Update status with compressed photo directly
-      const nextStatus = currentStep?.nextStatus;
-      if (nextStatus) {
-        await handleStatusUpdate(nextStatus, compressedPhoto);
+      // Save photo to DB
+      const res = await fetch(`/api/rides/${ride.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrl: compressedPhoto, photoType: fullType }),
+      });
+      if (!res.ok) throw new Error("Fotoğraf kaydedilemedi");
+
+      const newPhotos = [...capturedPhotos, { type: fullType, url: compressedPhoto }];
+      setCapturedPhotos(newPhotos);
+      setPhotoPreview(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+
+      if (photoAngleIndex < PHOTO_ANGLES.length - 1) {
+        // Sonraki açıya geç
+        setPhotoAngleIndex(photoAngleIndex + 1);
+        toast({ title: `✅ ${currentAngle.label} kaydedildi`, description: `Sırada: ${PHOTO_ANGLES[photoAngleIndex + 1].label}` });
+      } else {
+        // Tüm fotolar çekildi, sonraki adıma geç
+        const nextStatus = currentStep?.nextStatus;
+        if (nextStatus) {
+          await handleStatusUpdate(nextStatus);
+        }
+        setPhotoDialogOpen(false);
+        setPhotoAngleIndex(0);
+        setCapturedPhotos([]);
+        toast({ title: "🎉 Tüm fotoğraflar tamamlandı" });
       }
     } catch (error: any) {
       toast({ title: "Hata", description: error.message || "Fotoğraf yüklenemedi", variant: "destructive" });
@@ -281,6 +316,9 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
 
   const handleNextStep = () => {
     if (isPhotoStep) {
+      setPhotoAngleIndex(0);
+      setCapturedPhotos([]);
+      setPhotoPreview(null);
       setPhotoDialogOpen(true);
     } else if (currentStep?.nextStatus) {
       handleStatusUpdate(currentStep.nextStatus);
@@ -571,26 +609,51 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
         </Card>
       )}
 
-      {/* Photo Dialog */}
-      <Dialog open={photoDialogOpen} onOpenChange={setPhotoDialogOpen}>
-        <DialogContent>
+      {/* Photo Dialog - Multi Angle */}
+      <Dialog open={photoDialogOpen} onOpenChange={(open) => { if (!uploadingPhoto) setPhotoDialogOpen(open); }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {ride.status === "PHOTOS_BEFORE" ? "Başlangıç Fotoğrafı" : "Bitiş Fotoğrafı"}
+            <DialogTitle className="flex items-center justify-between">
+              <span>{ride.status === "PHOTOS_BEFORE" ? "Başlangıç" : "Bitiş"} Fotoğrafları</span>
+              <span className="text-sm font-normal text-gray-500">{photoAngleIndex + 1} / {PHOTO_ANGLES.length}</span>
             </DialogTitle>
             <DialogDescription>
-              Aracın {ride.status === "PHOTOS_BEFORE" ? "teslim alma" : "teslim etme"} durumunu fotoğraflayın.
+              Aracın 4 köşesini sırayla fotoğraflayın
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          {/* Progress dots */}
+          <div className="flex justify-center gap-2 py-2">
+            {PHOTO_ANGLES.map((angle, i) => (
+              <div key={angle.type} className={`flex flex-col items-center gap-1`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                  i < photoAngleIndex ? 'bg-green-500 text-white' :
+                  i === photoAngleIndex ? 'bg-green-600 text-white ring-2 ring-green-300' :
+                  'bg-gray-200 text-gray-500'
+                }`}>
+                  {i < photoAngleIndex ? '✓' : angle.icon}
+                </div>
+                <span className={`text-[10px] ${
+                  i === photoAngleIndex ? 'font-bold text-green-700' : 'text-gray-400'
+                }`}>{angle.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Current angle hint */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+            <p className="text-lg font-bold text-blue-700">{currentAngle?.icon} {currentAngle?.label}</p>
+            <p className="text-sm text-blue-600">{currentAngle?.hint}</p>
+          </div>
+
+          <div className="py-2">
             {photoPreview ? (
               <div className="relative">
-                <img src={photoPreview} alt="Preview" className="w-full rounded-lg" />
+                <img src={photoPreview} alt="Preview" className="w-full rounded-lg max-h-64 object-cover" />
                 <Button
                   variant="outline"
                   size="icon"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 bg-white"
                   onClick={() => {
                     setPhotoPreview(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -601,11 +664,12 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
               </div>
             ) : (
               <div
-                className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-green-500 transition-colors"
+                className="border-2 border-dashed border-green-400 rounded-lg p-8 text-center cursor-pointer hover:border-green-600 hover:bg-green-50 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Camera className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">Fotoğraf çekmek için tıklayın</p>
+                <Camera className="h-12 w-12 mx-auto text-green-500 mb-3" />
+                <p className="text-green-700 font-medium">{currentAngle?.label} fotoğrafı çekin</p>
+                <p className="text-xs text-gray-400 mt-1">Dokunun veya tıklayın</p>
               </div>
             )}
             <input
@@ -624,15 +688,17 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
             </Button>
             <Button
               className="bg-green-600 hover:bg-green-700"
-              onClick={handlePhotoUpload}
+              onClick={handlePhotoCapture}
               disabled={!photoPreview || uploadingPhoto}
             >
               {uploadingPhoto ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <Upload className="h-4 w-4 mr-2" />
+                <Camera className="h-4 w-4 mr-2" />
               )}
-              Yükle ve Devam Et
+              {photoAngleIndex < PHOTO_ANGLES.length - 1
+                ? `Kaydet → ${PHOTO_ANGLES[photoAngleIndex + 1]?.label}`
+                : 'Kaydet ve Tamamla'}
             </Button>
           </DialogFooter>
         </DialogContent>
