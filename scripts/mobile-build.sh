@@ -12,25 +12,25 @@ cp -r app .app-backup
 echo "🗑️  Removing API routes..."
 rm -rf app/api
 
-# 3. Remove dynamic route directories entirely
-echo "🗑️  Removing dynamic [id] routes..."
-find app -type d -name '\[*\]' -exec rm -rf {} + 2>/dev/null || true
+# 3. Remove dynamic route directories entirely ([id], [slug], etc.)
+echo "🗑️  Removing dynamic routes..."
+find app -type d -name '*\[*' | while IFS= read -r d; do
+  echo "  Removing: $d"
+  rm -rf "$d"
+done
 
 # 4. Stub all remaining server-side pages and layouts
 echo "🔍 Converting server-side pages..."
-find app -\( -name "page.tsx" -o -name "layout.tsx" \) | while IFS= read -r f; do
+find app -name "page.tsx" | while IFS= read -r f; do
   head -3 "$f" | grep -q "use client" && continue
-  
-  echo "  Converting: $f"
-  
-  if [[ "$f" == *"layout.tsx" ]]; then
-    cat > "$f" << 'STUB'
-import React from "react";
-export default function Layout({ children }: { children: React.ReactNode }) { return <>{children}</>; }
-STUB
-  else
-    echo 'export default function Page() { return null; }' > "$f"
-  fi
+  echo "  Stub page: $f"
+  echo 'export default function Page() { return null; }' > "$f"
+done
+
+find app -name "layout.tsx" | while IFS= read -r f; do
+  head -3 "$f" | grep -q "use client" && continue
+  echo "  Stub layout: $f"
+  printf 'import React from "react";\nexport default function Layout({ children }: { children: React.ReactNode }) { return <>{children}</>; }\n' > "$f"
 done
 
 # 5. Clean all caches
