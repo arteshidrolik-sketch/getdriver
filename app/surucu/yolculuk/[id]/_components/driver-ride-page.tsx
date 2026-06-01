@@ -211,34 +211,39 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
     }
   };
 
+  // Fotoğrafı client-side'da küçült ve sıkıştır
+  const compressImage = (dataUrl: string, maxWidth = 800, quality = 0.6): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  };
+
   const handlePhotoUpload = async () => {
-    if (!photoPreview || !fileInputRef.current?.files?.[0]) return;
+    if (!photoPreview) return;
 
     setUploadingPhoto(true);
     try {
-      const file = fileInputRef.current.files[0];
-      
-      // Upload to Vercel Blob
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("path", `rides/${ride.id}`);
+      // Compress image client-side (800px max, 60% quality)
+      const compressedPhoto = await compressImage(photoPreview);
 
-      const uploadRes = await fetch("/api/upload/blob", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        const err = await uploadRes.json();
-        throw new Error(err.error || "Yükleme başarısız");
-      }
-
-      const { url: photoUrl } = await uploadRes.json();
-
-      // Update status with photo
+      // Update status with compressed photo directly
       const nextStatus = currentStep?.nextStatus;
       if (nextStatus) {
-        await handleStatusUpdate(nextStatus, photoUrl);
+        await handleStatusUpdate(nextStatus, compressedPhoto);
       }
     } catch (error: any) {
       toast({ title: "Hata", description: error.message || "Fotoğraf yüklenemedi", variant: "destructive" });
