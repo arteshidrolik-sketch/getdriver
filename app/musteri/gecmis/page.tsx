@@ -1,10 +1,33 @@
-'use client';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/db";
+import { RideHistoryPage } from "./_components/ride-history-page";
 
-export default function Page() {
-  return (
-    <div className="p-8 text-center">
-      <h1 className="text-2xl font-bold mb-4">GetDriver</h1>
-      <p>Bu sayfa uygulama içinde çalışır.</p>
-    </div>
-  );
+export const dynamic = "force-dynamic";
+
+export default async function CustomerHistoryPage() {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id;
+
+  const rides = await prisma.ride.findMany({
+    where: {
+      request: { customerId: userId },
+      status: { in: ["COMPLETED", "CANCELLED"] },
+    },
+    include: {
+      request: {
+        include: { vehicle: true },
+      },
+      driver: {
+        include: { user: true },
+      },
+      ratings: {
+        where: { fromUserId: userId },
+      },
+    },
+    orderBy: { completedAt: "desc" },
+    take: 50,
+  });
+
+  return <RideHistoryPage rides={JSON.parse(JSON.stringify(rides))} />;
 }

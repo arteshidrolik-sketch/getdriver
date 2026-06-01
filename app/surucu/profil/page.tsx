@@ -1,10 +1,28 @@
-'use client';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { DriverProfilePage } from "./_components/driver-profile-page";
 
-export default function Page() {
-  return (
-    <div className="p-8 text-center">
-      <h1 className="text-2xl font-bold mb-4">GetDriver - Sürücü</h1>
-      <p>Bu sayfa uygulama içinde çalışır.</p>
-    </div>
-  );
+export default async function DriverProfilPage() {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    redirect("/giris");
+  }
+
+  const userId = (session.user as any).id;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      driver: true
+    }
+  });
+
+  if (!user) {
+    redirect("/giris");
+  }
+
+  return <DriverProfilePage user={user} />;
 }

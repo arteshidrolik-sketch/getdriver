@@ -1,10 +1,43 @@
-'use client';
+import { PaymentManagement } from "./_components/payment-management";
 
-export default function Page() {
+export const dynamic = "force-dynamic";
+
+export default async function PaymentsPage() {
+  let payments: any[] = [];
+  let stats = {
+    totalPayments: 0,
+    totalAmount: 0,
+  };
+
+  try {
+    const { prisma } = await import("@/lib/db");
+    const [dbPayments, revenueSummary] = await Promise.all([
+      prisma.payment.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          ride: { select: { id: true, price: true } },
+        },
+      }),
+      prisma.payment.aggregate({
+        _count: true,
+        _sum: { amount: true },
+        where: { status: "COMPLETED" },
+      }),
+    ]);
+    payments = JSON.parse(JSON.stringify(dbPayments));
+    stats = {
+      totalPayments: revenueSummary._count || 0,
+      totalAmount: revenueSummary._sum.amount || 0,
+    };
+  } catch (e) {
+    // Database not available
+  }
+
   return (
-    <div className="p-8 text-center">
-      <h1 className="text-2xl font-bold mb-4">GetDriver - Admin</h1>
-      <p>Bu sayfa uygulama içinde çalışır.</p>
-    </div>
+    <PaymentManagement
+      payments={payments}
+      stats={stats}
+    />
   );
 }
