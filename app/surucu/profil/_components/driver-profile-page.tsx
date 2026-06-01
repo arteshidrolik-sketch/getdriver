@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { User, Phone, Mail, Lock, Loader2, Eye, EyeOff, Star, Car, Shield, Banknote, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
+import { User, Phone, Mail, Lock, Loader2, Eye, EyeOff, Star, Car, Shield, Banknote, CreditCard, CheckCircle2, AlertCircle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { signOut } from "next-auth/react";
 import { formatPrice } from "@/lib/utils";
@@ -393,6 +393,24 @@ export function DriverProfilePage({ user }: DriverProfilePageProps) {
               </div>
             </DialogContent>
           </Dialog>
+        </CardContent>
+      </Card>
+
+      {/* Yasal Belgeler */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="font-semibold mb-3">Yasal Belgeler</h3>
+          <div className="space-y-2">
+            <a href="/surucu-sozlesmesi" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <FileText className="h-4 w-4" /> Sürücü Sözleşmesi
+            </a>
+            <a href="/kullanim-sartlari" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <FileText className="h-4 w-4" /> Kullanım Şartları
+            </a>
+            <a href="/gizlilik" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <Shield className="h-4 w-4" /> Gizlilik Politikası / KVKK
+            </a>
+          </div>
         </CardContent>
       </Card>
 

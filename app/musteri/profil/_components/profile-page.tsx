@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
-import { Phone, Mail, User, LogOut, Lock, Loader2, Eye, EyeOff, Edit2, Trash2, AlertTriangle } from "lucide-react";
+import { Phone, Mail, User, LogOut, Lock, Loader2, Eye, EyeOff, Edit2, Trash2, AlertTriangle, FileText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -213,6 +213,21 @@ export function ProfilePage({ user }: ProfilePageProps) {
         <LogOut className="h-5 w-5 mr-2" />
         Çıkış Yap
       </Button>
+
+      {/* Yasal Belgeler */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="font-semibold mb-3">Yasal Belgeler</h3>
+          <div className="space-y-2">
+            <a href="/kullanim-sartlari" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <FileText className="h-4 w-4" /> Kullanım Şartları
+            </a>
+            <a href="/gizlilik" target="_blank" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <Shield className="h-4 w-4" /> Gizlilik Politikası / KVKK
+            </a>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Delete Account Section */}
       <Card className="border-red-200 dark:border-red-900">
