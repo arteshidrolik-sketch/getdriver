@@ -283,7 +283,7 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-2xl mx-auto pb-32">
+    <div className="p-4 md:p-6 max-w-2xl mx-auto pb-8">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/surucu">
@@ -533,35 +533,37 @@ export function DriverRidePage({ ride: initialRide }: DriverRidePageProps) {
         </Card>
       )}
 
-      {/* Fixed Bottom Actions */}
+      {/* Action Buttons */}
       {!isCompleted && !isCancelled && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg">
-          <div className="max-w-2xl mx-auto flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-              onClick={() => setCancelDialogOpen(true)}
-              disabled={loading}
-            >
-              <X className="h-4 w-4 mr-2" />
-              İptal Et
-            </Button>
-            <Button
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={handleNextStep}
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : isPhotoStep ? (
-                <Camera className="h-4 w-4 mr-2" />
-              ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
-              )}
-              {currentStep?.nextLabel || "Devam"}
-            </Button>
-          </div>
-        </div>
+        <Card className="border-2 border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 text-red-600 border-red-200 hover:bg-red-50 h-14 text-base"
+                onClick={() => setCancelDialogOpen(true)}
+                disabled={loading}
+              >
+                <X className="h-5 w-5 mr-2" />
+                İptal Et
+              </Button>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 h-14 text-base font-bold"
+                onClick={handleNextStep}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                ) : isPhotoStep ? (
+                  <Camera className="h-5 w-5 mr-2" />
+                ) : (
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                )}
+                {currentStep?.nextLabel || "Devam"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Photo Dialog */}
