@@ -36,25 +36,24 @@ jobs:
         echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
         chmod 600 ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
 
+    - name: Clean old derived data
+      run: rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
+
     - name: Archive iOS App
       run: |
         cd ios/App
-        rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
 
-        # Determine workspace vs project
         if [ -d App.xcworkspace ]; then
           BUILD_TARGET="-workspace App.xcworkspace"
         else
           BUILD_TARGET="-project App.xcodeproj"
         fi
 
-        # Archive with automatic signing (development)
-        # Export step will re-sign with distribution certificate
         xcodebuild $BUILD_TARGET \
           -scheme App \
           -configuration Release \
           -destination 'generic/platform=iOS' \
-          -archivePath build/App.xcarchive \
+          -archivePath $RUNNER_TEMP/App.xcarchive \
           -allowProvisioningUpdates \
           -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 \
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
@@ -63,56 +62,83 @@ jobs:
           CODE_SIGN_STYLE=Automatic \
           clean archive
 
-        echo "=== Archive completed ==="
-        ls -la build/App.xcarchive/
+        echo "Archive completed"
+        ls -la $RUNNER_TEMP/App.xcarchive/Products/Applications/
 
-    - name: Export and Upload to App Store Connect
+    - name: Create ExportOptions plist
       run: |
-        cd ios/App
-
-        # Create ExportOptions - app-store-connect method with upload destination
-        # This re-signs with Apple Distribution certificate automatically
-        cat > ExportOptions.plist << EOF
+        cat > $RUNNER_TEMP/ExportOptions.plist <<'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
         <dict>
-          <key>method</key>
-          <string>app-store-connect</string>
-          <key>destination</key>
-          <string>upload</string>
-          <key>signingStyle</key>
-          <string>automatic</string>
-          <key>teamID</key>
-          <string>${{ secrets.APPLE_TEAM_ID }}</string>
-          <key>uploadSymbols</key>
-          <true/>
-          <key>manageAppVersionAndBuildNumber</key>
-          <true/>
+        <key>method</key>
+        <string>app-store-connect</string>
+        <key>signingStyle</key>
+        <string>automatic</string>
+        <key>teamID</key>
+        EOF
+        echo "<string>${{ secrets.APPLE_TEAM_ID }}</string>" >> $RUNNER_TEMP/ExportOptions.plist
+        cat >> $RUNNER_TEMP/ExportOptions.plist <<'EOF'
+        <key>uploadSymbols</key>
+        <true/>
+        <key>manageAppVersionAndBuildNumber</key>
+        <true/>
         </dict>
         </plist>
         EOF
+        echo "=== ExportOptions ==="
+        cat $RUNNER_TEMP/ExportOptions.plist
+        echo ""
+        # Validate plist
+        plutil -lint $RUNNER_TEMP/ExportOptions.plist
 
-        echo "=== ExportOptions.plist ==="
-        cat ExportOptions.plist
-
-        # Export with re-signing for App Store distribution + direct upload
+    - name: Export IPA
+      run: |
         xcodebuild -exportArchive \
-          -archivePath build/App.xcarchive \
-          -exportPath build/export \
-          -exportOptionsPlist ExportOptions.plist \
+          -archivePath $RUNNER_TEMP/App.xcarchive \
+          -exportPath $RUNNER_TEMP/export \
+          -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
           -allowProvisioningUpdates \
           -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 \
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }}
 
-        echo "=== Export and Upload completed ==="
-        ls -la build/export/ || true
+        echo "=== Export completed ==="
+        ls -la $RUNNER_TEMP/export/
+        IPA=$(find $RUNNER_TEMP/export -name '*.ipa' -print -quit)
+        echo "IPA file: $IPA"
+        echo "IPA_PATH=$IPA" >> $GITHUB_ENV
+
+    - name: Validate IPA
+      run: |
+        echo "Validating $IPA_PATH..."
+        xcrun altool --validate-app \
+          --type ios \
+          --file "$IPA_PATH" \
+          --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
+          --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
+          --verbose
+        echo "Validation passed!"
+
+    - name: Upload to App Store Connect
+      env:
+        API_PRIVATE_KEYS_DIR: ~/private_keys
+      run: |
+        echo "Uploading $IPA_PATH to App Store Connect..."
+        xcrun altool --upload-app \
+          --type ios \
+          --file "$IPA_PATH" \
+          --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
+          --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
+          --verbose
+        echo "Upload completed successfully!"
 
     - name: Upload build artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: ios-build
-        path: ios/App/build/export/
+        path: |
+          ${{ runner.temp }}/export/
         retention-days: 7
