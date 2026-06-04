@@ -42,15 +42,11 @@ jobs:
     - name: Archive iOS App (Distribution signing)
       run: |
         cd ios/App
-
         if [ -d App.xcworkspace ]; then
           BUILD_TARGET="-workspace App.xcworkspace"
         else
           BUILD_TARGET="-project App.xcodeproj"
         fi
-
-        # Archive with Manual signing + Apple Distribution
-        # -allowProvisioningUpdates with API key auto-manages profiles
         xcodebuild $BUILD_TARGET \
           -scheme App \
           -configuration Release \
@@ -64,39 +60,14 @@ jobs:
           CODE_SIGN_STYLE=Manual \
           CODE_SIGN_IDENTITY="Apple Distribution" \
           clean archive
-
         echo "=== Archive completed ==="
-        ls -la $RUNNER_TEMP/App.xcarchive/Products/Applications/
-
-        # Verify signing
-        echo "=== Verify code signing ==="
         codesign -dvv $RUNNER_TEMP/App.xcarchive/Products/Applications/App.app 2>&1 || true
-        codesign -dvv $RUNNER_TEMP/App.xcarchive/Products/Applications/App.app/Frameworks/Capacitor.framework 2>&1 || true
 
-    - name: Create ExportOptions plist
+    - name: Create ExportOptions and Export IPA
       run: |
-        cat > $RUNNER_TEMP/ExportOptions.plist << 'PLISTEOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>method</key>
-  <string>app-store-connect</string>
-  <key>signingStyle</key>
-  <string>manual</string>
-  <key>uploadSymbols</key>
-  <true/>
-  <key>manageAppVersionAndBuildNumber</key>
-  <true/>
-</dict>
-</plist>
-PLISTEOF
-        # Validate plist syntax
+        printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>method</key>\n  <string>app-store-connect</string>\n  <key>signingStyle</key>\n  <string>manual</string>\n  <key>teamID</key>\n  <string>${{ secrets.APPLE_TEAM_ID }}</string>\n  <key>uploadSymbols</key>\n  <true/>\n  <key>manageAppVersionAndBuildNumber</key>\n  <true/>\n</dict>\n</plist>\n' > $RUNNER_TEMP/ExportOptions.plist
         plutil -lint $RUNNER_TEMP/ExportOptions.plist
         cat $RUNNER_TEMP/ExportOptions.plist
-
-    - name: Export IPA
-      run: |
         xcodebuild -exportArchive \
           -archivePath $RUNNER_TEMP/App.xcarchive \
           -exportPath $RUNNER_TEMP/export \
@@ -105,7 +76,6 @@ PLISTEOF
           -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 \
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }}
-
         echo "=== Export completed ==="
         ls -la $RUNNER_TEMP/export/
         IPA=$(find $RUNNER_TEMP/export -name '*.ipa' -print -quit)
@@ -123,8 +93,6 @@ PLISTEOF
           --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
           --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
           --verbose 2>&1 | tee /tmp/upload-output.txt
-
-        # Check for actual failure in output (altool sometimes exits 0 on failure)
         if grep -qi "UPLOAD FAILED\|Failed to upload\|Validation failed" /tmp/upload-output.txt; then
           echo "::error::Upload FAILED - check logs above"
           exit 1
