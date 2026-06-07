@@ -39,6 +39,37 @@ jobs:
         echo "${{ secrets.APPSTORE_PRIVATE_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
         chmod 600 ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8
 
+    - name: Install Distribution Certificate
+      run: |
+        # Create temporary keychain
+        KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+        KEYCHAIN_PASSWORD=$(openssl rand -hex 12)
+
+        security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+        # Decode and import the distribution certificate
+        echo "${{ secrets.DISTRIBUTION_CERT_P12 }}" | base64 --decode > $RUNNER_TEMP/distribution.p12
+        security import $RUNNER_TEMP/distribution.p12 \
+          -P "${{ secrets.DISTRIBUTION_CERT_PASSWORD }}" \
+          -A -t cert -f pkcs12 \
+          -k $KEYCHAIN_PATH
+
+        # Add keychain to search list
+        security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+        security default-keychain -s $KEYCHAIN_PATH
+
+        # Allow codesign to access the keychain without prompt
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+        # Verify certificate is installed
+        echo "=== Installed certificates ==="
+        security find-identity -v -p codesigning $KEYCHAIN_PATH
+
+        # Clean up p12
+        rm -f $RUNNER_TEMP/distribution.p12
+
     - name: Clean old derived data
       run: rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
 
@@ -62,9 +93,12 @@ jobs:
           DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
           CODE_SIGN_STYLE=Automatic \
           clean archive
-        echo "=== Archive completed ==="
 
-    - name: Export IPA (local, no upload)
+        echo "=== Archive completed ==="
+        echo "=== Signing identity used ==="
+        codesign -dvv $RUNNER_TEMP/App.xcarchive/Products/Applications/App.app 2>&1 | grep -E "Authority|Team" || true
+
+    - name: Export IPA for App Store
       run: |
         python3 -c "
         import plistlib
@@ -99,14 +133,13 @@ jobs:
         fi
         echo "IPA_PATH=$IPA" >> $GITHUB_ENV
 
-        echo "=== Verify signing ==="
+        echo "=== Verify IPA signing ==="
         mkdir -p /tmp/ipa-check
         unzip -q "$IPA" -d /tmp/ipa-check
         codesign -dvv /tmp/ipa-check/Payload/App.app 2>&1 | grep -E "Authority|Team|Identifier"
-        codesign -dvv /tmp/ipa-check/Payload/App.app/Frameworks/Capacitor.framework 2>&1 | grep -E "Authority|Team"
         rm -rf /tmp/ipa-check
 
-    - name: Upload to App Store Connect via xcrun
+    - name: Upload to App Store Connect
       run: |
         echo "Uploading $IPA_PATH..."
         xcrun altool --upload-app \
@@ -118,13 +151,18 @@ jobs:
 
         if grep -qi "No errors uploading" /tmp/upload.log; then
           echo ""
-          echo "✅ Upload successful! TestFlight'da ~10-30 dk içinde görünecek."
+          echo "✅ Upload successful! TestFlight'da ~10-30 dk icinde gorunecek."
         elif grep -qi "Validation failed\|UPLOAD FAILED\|Failed to upload" /tmp/upload.log; then
-          echo "::error::Upload failed! Logları kontrol edin."
+          echo "::error::Upload failed!"
           exit 1
         else
-          echo "⚠️ Upload durumu belirsiz. App Store Connect'i kontrol edin."
+          echo "Upload durumu belirsiz. App Store Connect'i kontrol edin."
         fi
+
+    - name: Cleanup keychain
+      if: always()
+      run: |
+        security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
 
     - name: Upload build artifacts
       if: always()
