@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-ios:
     runs-on: macos-latest
@@ -39,14 +42,18 @@ jobs:
     - name: Clean old derived data
       run: rm -rf ~/Library/Developer/Xcode/DerivedData/App-*
 
-    - name: Archive iOS App (Distribution signing)
+    - name: Archive iOS App
       run: |
         cd ios/App
+
         if [ -d App.xcworkspace ]; then
           BUILD_TARGET="-workspace App.xcworkspace"
         else
           BUILD_TARGET="-project App.xcodeproj"
         fi
+
+        # Automatic signing + API key lets Xcode create & manage
+        # both certificates and provisioning profiles on CI
         xcodebuild $BUILD_TARGET \
           -scheme App \
           -configuration Release \
@@ -57,17 +64,46 @@ jobs:
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }} \
           DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
-          CODE_SIGN_STYLE=Manual \
-          CODE_SIGN_IDENTITY="Apple Distribution" \
+          CODE_SIGN_STYLE=Automatic \
           clean archive
+
         echo "=== Archive completed ==="
+        ls -la $RUNNER_TEMP/App.xcarchive/Products/Applications/
+
+        # Show what certificate was used
+        echo "=== Code signing info ==="
         codesign -dvv $RUNNER_TEMP/App.xcarchive/Products/Applications/App.app 2>&1 || true
 
-    - name: Create ExportOptions and Export IPA
+    - name: Export IPA for App Store
       run: |
-        printf '<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>method</key>\n  <string>app-store-connect</string>\n  <key>signingStyle</key>\n  <string>manual</string>\n  <key>teamID</key>\n  <string>${{ secrets.APPLE_TEAM_ID }}</string>\n  <key>uploadSymbols</key>\n  <true/>\n  <key>manageAppVersionAndBuildNumber</key>\n  <true/>\n</dict>\n</plist>\n' > $RUNNER_TEMP/ExportOptions.plist
-        plutil -lint $RUNNER_TEMP/ExportOptions.plist
+        # Create ExportOptions - use automatic signing so Xcode
+        # re-signs with Distribution cert during export
+        cat > $RUNNER_TEMP/ExportOptions.plist << 'PLISTEOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>method</key>
+          <string>app-store-connect</string>
+          <key>signingStyle</key>
+          <string>automatic</string>
+          <key>teamID</key>
+        PLISTEOF
+        echo "  <string>${{ secrets.APPLE_TEAM_ID }}</string>" >> $RUNNER_TEMP/ExportOptions.plist
+        cat >> $RUNNER_TEMP/ExportOptions.plist << 'PLISTEOF'
+          <key>uploadSymbols</key>
+          <true/>
+          <key>manageAppVersionAndBuildNumber</key>
+          <true/>
+        </dict>
+        </plist>
+        PLISTEOF
+
+        echo "=== ExportOptions ==="
         cat $RUNNER_TEMP/ExportOptions.plist
+        plutil -lint $RUNNER_TEMP/ExportOptions.plist
+
+        # Export - this step re-signs everything with Distribution cert
         xcodebuild -exportArchive \
           -archivePath $RUNNER_TEMP/App.xcarchive \
           -exportPath $RUNNER_TEMP/export \
@@ -76,28 +112,64 @@ jobs:
           -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APPSTORE_KEY_ID }}.p8 \
           -authenticationKeyID ${{ secrets.APPSTORE_KEY_ID }} \
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }}
+
         echo "=== Export completed ==="
         ls -la $RUNNER_TEMP/export/
+
         IPA=$(find $RUNNER_TEMP/export -name '*.ipa' -print -quit)
+        if [ -z "$IPA" ]; then
+          echo "::error::No IPA file found after export!"
+          exit 1
+        fi
         echo "IPA file: $IPA"
         echo "IPA_PATH=$IPA" >> $GITHUB_ENV
+
+        # Verify the IPA is signed with Distribution cert
+        echo "=== Verify IPA signing ==="
+        mkdir -p /tmp/ipa-check
+        unzip -q "$IPA" -d /tmp/ipa-check
+        codesign -dvv /tmp/ipa-check/Payload/App.app 2>&1 || true
+        codesign -dvv /tmp/ipa-check/Payload/App.app/Frameworks/Capacitor.framework 2>&1 || true
+        rm -rf /tmp/ipa-check
 
     - name: Upload to App Store Connect
       env:
         API_PRIVATE_KEYS_DIR: ~/private_keys
       run: |
         echo "Uploading $IPA_PATH to App Store Connect..."
+
+        # Use xcrun notarytool / altool to upload
+        UPLOAD_OUTPUT=$(mktemp)
+        set +e
         xcrun altool --upload-app \
           --type ios \
           --file "$IPA_PATH" \
           --apiKey "${{ secrets.APPSTORE_KEY_ID }}" \
           --apiIssuer "${{ secrets.APPSTORE_ISSUER_ID }}" \
-          --verbose 2>&1 | tee /tmp/upload-output.txt
-        if grep -qi "UPLOAD FAILED\|Failed to upload\|Validation failed" /tmp/upload-output.txt; then
-          echo "::error::Upload FAILED - check logs above"
+          --verbose 2>&1 | tee "$UPLOAD_OUTPUT"
+        UPLOAD_EXIT=$?
+        set -e
+
+        # Check for actual failures (altool sometimes exits 0 on failure)
+        if [ $UPLOAD_EXIT -ne 0 ]; then
+          echo "::error::altool exited with code $UPLOAD_EXIT"
           exit 1
         fi
-        echo "Upload completed successfully!"
+
+        if grep -qi "UPLOAD FAILED\|Failed to upload\|Validation failed\|error:" "$UPLOAD_OUTPUT"; then
+          echo ""
+          echo "::error::Upload validation failed! Check errors above."
+          echo "::error::Common causes: Invalid signature, missing entitlements, wrong bundle ID"
+          exit 1
+        fi
+
+        if grep -qi "No errors uploading" "$UPLOAD_OUTPUT"; then
+          echo ""
+          echo "✅ Upload successful! Build will appear in TestFlight after processing (~10-30 min)"
+        else
+          echo ""
+          echo "⚠️ Upload completed but success message not found. Check App Store Connect manually."
+        fi
 
     - name: Upload build artifacts
       if: always()
