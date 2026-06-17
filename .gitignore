@@ -3,3 +3,20 @@ node_modules/
 dist/
 .env
 *.log
+
+# ── Android TWA Build Artifacts (kaynak kod yeterli) ──
+android-twa/.gradle/
+android-twa/app/build/
+android-twa/build/
+android-twa/android-sdk/
+android-twa/*.apk
+android-twa/*.aab
+android-twa/*.idsig
+
+# ── iOS Build Artifacts (Capacitor kaynak kod yeterli) ──
+ios/App/build/
+ios/DerivedData/
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/App/public/
+ios/App/App/capacitor.config.json
