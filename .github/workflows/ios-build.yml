@@ -92,6 +92,7 @@ jobs:
           -authenticationKeyIssuerID ${{ secrets.APPSTORE_ISSUER_ID }} \
           DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
           CODE_SIGN_STYLE=Automatic \
+          CURRENT_PROJECT_VERSION=${{ github.run_number }} \
           clean archive
 
         echo "=== Archive completed ==="
@@ -107,7 +108,7 @@ jobs:
             'signingStyle': 'automatic',
             'teamID': '${{ secrets.APPLE_TEAM_ID }}',
             'uploadSymbols': True,
-            'manageAppVersionAndBuildNumber': True,
+            'manageAppVersionAndBuildNumber': False,
         }
         with open('${{ runner.temp }}/ExportOptions.plist', 'wb') as f:
             plistlib.dump(opts, f)
