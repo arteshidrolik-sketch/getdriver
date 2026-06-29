@@ -17,9 +17,6 @@ export default function HomePage() {
             <Link href="/giris">
               <Button variant="ghost">Giriş Yap</Button>
             </Link>
-            <Link href="/kayit">
-              <Button className="bg-green-600 hover:bg-green-700">Kayıt Ol</Button>
-            </Link>
           </nav>
         </div>
       </header>
@@ -41,7 +38,7 @@ export default function HomePage() {
               <Link href="/kayit">
                 <Button size="xl" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
                   <Car className="h-5 w-5 mr-2" />
-                  Hemen Başla
+                  Müşteri Ol
                 </Button>
               </Link>
               <Link href="/surucu-ol">
